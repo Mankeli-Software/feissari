@@ -38,8 +38,14 @@ export default function StartScreen() {
       const sessionToken = generateSessionToken()
       
       // Save cookies (expires in 30 days)
-      Cookies.set(COOKIE_NAME, sessionToken, { expires: 30 })
-      Cookies.set(COOKIE_NAME_USERNAME, playerName, { expires: 30 })
+      const isProduction = process.env.NODE_ENV === 'production'
+      const cookieOptions = { 
+        expires: 30,
+        sameSite: 'strict' as const,
+        secure: isProduction, // Only use secure flag in production with HTTPS
+      }
+      Cookies.set(COOKIE_NAME, sessionToken, cookieOptions)
+      Cookies.set(COOKIE_NAME_USERNAME, playerName, cookieOptions)
       
       setIsStarted(true)
     }
