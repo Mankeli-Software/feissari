@@ -142,13 +142,15 @@ app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'ok', timestamp: Date.now() });
 });
 
-// Start the server
-app.listen(PORT, () => {
-  console.log(`Backend server is running on port ${PORT}`);
-  console.log(`Health check: http://localhost:${PORT}/health`);
-  console.log(`API endpoints:`);
-  console.log(`  POST /api/user - Save user name and session ID`);
-  console.log(`  GET /api/user/:sessionId - Get user name by session ID`);
-});
+// Start the server only if not in test mode
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => {
+    console.log(`Backend server is running on port ${PORT}`);
+    console.log(`Health check: http://localhost:${PORT}/health`);
+    console.log(`API endpoints:`);
+    console.log(`  POST /api/user - Save user name and session ID`);
+    console.log(`  GET /api/user/:sessionId - Get user name by session ID`);
+  });
+}
 
 export default app;
