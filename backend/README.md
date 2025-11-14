@@ -21,6 +21,30 @@ A basic Express.js backend service for the Feissari game with Firebase integrati
 npm install
 ```
 
+## Testing
+
+Run unit tests:
+```bash
+npm test
+```
+
+Run tests in watch mode:
+```bash
+npm test:watch
+```
+
+Run tests with coverage:
+```bash
+npm test:coverage
+```
+
+The test suite includes:
+- Health check endpoint validation
+- User creation with input validation
+- User retrieval by session ID
+- Error handling and edge cases
+- 15 comprehensive unit tests
+
 ## Configuration
 
 Set the following environment variables:

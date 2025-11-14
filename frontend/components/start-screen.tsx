@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
 const COOKIE_NAME = "feissari_session"
-const COOKIE_NAME_USERNAME = "feissari_username"
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001"
 
 function generateSessionToken() {
   return `session_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`
@@ -16,52 +16,112 @@ export default function StartScreen() {
   const [playerName, setPlayerName] = useState("")
   const [isStarted, setIsStarted] = useState(false)
   const [isClient, setIsClient] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     // This effect runs only once on mount
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsClient(true)
     
     // Check if user already has a session token
     const existingToken = Cookies.get(COOKIE_NAME)
-    const existingUsername = Cookies.get(COOKIE_NAME_USERNAME)
     
-    if (existingToken && existingUsername) {
-      setPlayerName(existingUsername)
-      setIsStarted(true)
+    if (existingToken) {
+      // Verify session with backend
+      fetchUserFromBackend(existingToken)
     }
   }, [])
 
-  const handleStartPlaying = () => {
+  const fetchUserFromBackend = async (sessionId: string) => {
+    try {
+      setIsLoading(true)
+      const response = await fetch(`${BACKEND_URL}/api/user/${sessionId}`)
+      
+      if (response.ok) {
+        const data = await response.json()
+        setPlayerName(data.name)
+        setIsStarted(true)
+      } else if (response.status === 404) {
+        // User not found in backend, clear the cookie
+        Cookies.remove(COOKIE_NAME)
+      } else {
+        console.error('Failed to fetch user from backend:', response.statusText)
+      }
+    } catch (err) {
+      console.error('Error fetching user from backend:', err)
+      // Don't clear cookie on network errors, user might be offline
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleStartPlaying = async () => {
     if (playerName.trim()) {
-      // Generate and save session token
+      setIsLoading(true)
+      setError(null)
+      
+      // Generate session token
       const sessionToken = generateSessionToken()
       
-      // Save cookies (expires in 30 days)
-      const isProduction = process.env.NODE_ENV === 'production'
-      const cookieOptions = { 
-        expires: 30,
-        sameSite: 'strict' as const,
-        secure: isProduction, // Only use secure flag in production with HTTPS
+      try {
+        // Save to backend first
+        const response = await fetch(`${BACKEND_URL}/api/user`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: playerName.trim(),
+            sessionId: sessionToken,
+          }),
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Failed to save user data')
+        }
+
+        // Only save cookie after successful backend save
+        const isProduction = process.env.NODE_ENV === 'production'
+        const cookieOptions = { 
+          expires: 30,
+          sameSite: 'strict' as const,
+          secure: isProduction, // Only use secure flag in production with HTTPS
+        }
+        Cookies.set(COOKIE_NAME, sessionToken, cookieOptions)
+        
+        setIsStarted(true)
+      } catch (err) {
+        console.error('Error saving user:', err)
+        setError(err instanceof Error ? err.message : 'Failed to start game. Please try again.')
+      } finally {
+        setIsLoading(false)
       }
-      Cookies.set(COOKIE_NAME, sessionToken, cookieOptions)
-      Cookies.set(COOKIE_NAME_USERNAME, playerName, cookieOptions)
-      
-      setIsStarted(true)
     }
   }
 
   const handleReset = () => {
     // For testing purposes - clear cookies and reset
     Cookies.remove(COOKIE_NAME)
-    Cookies.remove(COOKIE_NAME_USERNAME)
     setPlayerName("")
     setIsStarted(false)
+    setError(null)
   }
 
   // Show loading state during SSR to prevent hydration mismatch
   if (!isClient) {
     return null
+  }
+
+  if (isLoading && !isStarted) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-emerald-50 to-green-100 dark:from-gray-900 dark:to-emerald-950">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-emerald-600"></div>
+          <p className="text-xl text-emerald-700 dark:text-emerald-300">Loading...</p>
+        </div>
+      </div>
+    )
   }
 
   if (isStarted) {
@@ -99,6 +159,12 @@ export default function StartScreen() {
         </div>
         
         <div className="space-y-6">
+          {error && (
+            <div className="p-4 bg-red-100 border border-red-400 text-red-700 rounded dark:bg-red-900 dark:border-red-700 dark:text-red-200">
+              {error}
+            </div>
+          )}
+          
           <div className="space-y-2">
             <label 
               htmlFor="player-name" 
@@ -113,21 +179,22 @@ export default function StartScreen() {
               value={playerName}
               onChange={(e) => setPlayerName(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && playerName.trim()) {
+                if (e.key === "Enter" && playerName.trim() && !isLoading) {
                   handleStartPlaying()
                 }
               }}
               className="text-base"
+              disabled={isLoading}
             />
           </div>
           
           <Button
             onClick={handleStartPlaying}
-            disabled={!playerName.trim()}
+            disabled={!playerName.trim() || isLoading}
             className="w-full h-14 text-lg font-semibold bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 dark:disabled:bg-gray-600"
             size="lg"
           >
-            Start Playing
+            {isLoading ? "Starting..." : "Start Playing"}
           </Button>
         </div>
       </div>
