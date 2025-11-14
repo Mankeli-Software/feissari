@@ -13,17 +13,24 @@ app.use(express.json());
 // Initialize Firebase Admin SDK
 // Note: In production, you should use a service account key file
 // For now, we'll initialize with default credentials
+let db: admin.database.Database | null = null;
+
 try {
-  admin.initializeApp({
-    credential: admin.credential.applicationDefault(),
-    databaseURL: process.env.FIREBASE_DATABASE_URL
-  });
+  if (process.env.FIREBASE_DATABASE_URL) {
+    admin.initializeApp({
+      credential: admin.credential.applicationDefault(),
+      databaseURL: process.env.FIREBASE_DATABASE_URL
+    });
+    db = admin.database();
+    console.log('Firebase Admin SDK initialized successfully');
+  } else {
+    console.log('Firebase not configured - FIREBASE_DATABASE_URL not set');
+    console.log('API endpoints will return errors without Firebase configuration');
+  }
 } catch (error) {
   console.error('Failed to initialize Firebase Admin SDK:', error);
-  console.log('Server will run but Firebase operations will fail without proper configuration');
+  console.log('Server will run but Firebase operations will fail');
 }
-
-const db = admin.database();
 
 // Interface for user data
 interface UserData {
@@ -50,6 +57,13 @@ app.post('/api/user', async (req: Request, res: Response) => {
     if (!sessionId || typeof sessionId !== 'string' || sessionId.trim() === '') {
       return res.status(400).json({ 
         error: 'Invalid sessionId: sessionId is required and must be a non-empty string' 
+      });
+    }
+
+    if (!db) {
+      return res.status(503).json({
+        error: 'Firebase not configured',
+        details: 'Set FIREBASE_DATABASE_URL environment variable'
       });
     }
 
@@ -87,6 +101,13 @@ app.get('/api/user/:sessionId', async (req: Request, res: Response) => {
     if (!sessionId || sessionId.trim() === '') {
       return res.status(400).json({ 
         error: 'Invalid sessionId: sessionId is required' 
+      });
+    }
+
+    if (!db) {
+      return res.status(503).json({
+        error: 'Firebase not configured',
+        details: 'Set FIREBASE_DATABASE_URL environment variable'
       });
     }
 
