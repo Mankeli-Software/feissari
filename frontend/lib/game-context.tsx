@@ -34,6 +34,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!gameState.isActive || !startTime) return;
 
+    let timeExpiredHandled = false;
+
     const interval = setInterval(() => {
       const elapsed = Date.now() - startTime;
       const remaining = Math.max(0, Math.floor((GAME_DURATION_MS - elapsed) / 1000));
@@ -43,16 +45,68 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         timeRemaining: remaining,
       }));
 
-      if (remaining <= 0) {
-        setGameState(prev => ({
-          ...prev,
-          isActive: false,
-        }));
+      if (remaining <= 0 && !timeExpiredHandled) {
+        timeExpiredHandled = true;
+        clearInterval(interval); // Stop the timer immediately
+        // Time expired - call backend to finalize game and get final score
+        if (gameState.gameId) {
+          handleTimeExpired(gameState.gameId);
+        }
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [gameState.isActive, startTime]);
+  }, [gameState.isActive, startTime, gameState.gameId]);
+
+  const handleTimeExpired = async (gameId: string) => {
+    try {
+      console.log('Time expired, calling backend to finalize game...');
+      // Send a request to backend to finalize the game
+      const response = await fetch(`${BACKEND_URL}/api/game/${gameId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: null }),
+      });
+
+      if (response.status === 410) {
+        // Game already ended - the score should already be in state from the last update
+        console.log('Game already ended (410), using score from state:', gameState.score);
+        setGameState(prev => ({
+          ...prev,
+          isActive: false,
+        }));
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(`Failed to finalize game: ${response.status}`);
+      }
+
+      const data: UpdateGameResponse = await response.json();
+      console.log('Game finalized by backend:', { score: data.score, defeatedFeissari: data.defeatedFeissari, balance: data.balance });
+      
+      // Update game state with final score from backend
+      setGameState(prev => ({
+        ...prev,
+        isActive: false,
+        score: data.score,
+        defeatedFeissari: data.defeatedFeissari,
+        balance: data.balance,
+      }));
+    } catch (error) {
+      console.error('Error finalizing game:', error);
+      // Fallback: calculate score locally and mark game as inactive
+      const calculatedScore = (gameState.defeatedFeissari || 0) * gameState.balance;
+      console.log('Fallback: marking game inactive with calculated score:', calculatedScore);
+      setGameState(prev => ({
+        ...prev,
+        isActive: false,
+        score: calculatedScore,
+      }));
+    }
+  };
 
   const startGame = useCallback(async () => {
     const sessionId = Cookies.get('feissari_session');

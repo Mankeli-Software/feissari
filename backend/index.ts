@@ -131,7 +131,8 @@ async function calculateDefeatedFeissari(gameId: string): Promise<number> {
 async function calculateGameScore(gameId: string, finalBalance: number): Promise<{ score: number; defeatedFeissari: number }> {
   const defeatedFeissari = await calculateDefeatedFeissari(gameId);
   const score = defeatedFeissari * finalBalance;
-  return { score, defeatedFeissari };
+  console.log(`calculateGameScore: gameId=${gameId}, finalBalance=${finalBalance}, defeatedFeissari=${defeatedFeissari}, score=${score}`);
+  return { score: score || 0, defeatedFeissari: defeatedFeissari || 0 };
 }
 
 // Interface for user data
@@ -514,10 +515,8 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
 
     // Validate that the feissari has required fields
     if (!feissari.emotes || !Array.isArray(feissari.emotes)) {
-      return res.status(500).json({
-        error: 'Invalid feissari data',
-        details: 'Feissari is missing emotes configuration'
-      });
+      console.error('Feissari missing emotes field:', feissariDoc.id, 'Using empty array as fallback');
+      feissari.emotes = [];
     }
 
     // Get chat history for current feissari
@@ -543,8 +542,8 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
     );
 
     // Get emote assets
-    const emote = feissari.emotes.find(e => e.identifier === llmResponse.emote);
-    const emoteAssets = emote ? emote.assets : [];
+    const emote = feissari.emotes?.find(e => e.identifier === llmResponse.emote);
+    const emoteAssets = emote?.assets || [];
 
     // Store chat history
     const chatRef = firestore
@@ -607,11 +606,8 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
       // Validate that the feissari has required fields
       if (!nextFeissariData.emotes || !Array.isArray(nextFeissariData.emotes)) {
         console.error('Next feissari missing emotes field:', nextFeissari.id);
-        // Skip to next feissari or handle error gracefully
-        return res.status(500).json({
-          error: 'Invalid feissari data',
-          details: 'Feissari is missing emotes configuration'
-        });
+        // Provide a default empty emotes array as fallback
+        nextFeissariData.emotes = [];
       }
       
       nextFeissariName = nextFeissariData.name;
@@ -627,8 +623,8 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
       nextFeissariMessage = nextFeissariResponse.message;
       
       // Get emote assets for next feissari
-      const nextEmote = nextFeissariData.emotes.find(e => e.identifier === nextFeissariResponse.emote);
-      nextFeissariEmoteAssets = nextEmote ? nextEmote.assets : [];
+      const nextEmote = nextFeissariData.emotes?.find(e => e.identifier === nextFeissariResponse.emote);
+      nextFeissariEmoteAssets = nextEmote?.assets || [];
       
       // Store the next feissari's initial greeting in chat history
       const nextChatRef = firestore
@@ -661,6 +657,8 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
     const balanceDepletedNow = llmResponse.balance <= 0;
     const gameOver = balanceDepletedNow || timeExpired;
     
+    console.log(`Game state: gameId=${gameId}, balanceDepletedNow=${balanceDepletedNow}, timeExpired=${timeExpired}, gameOver=${gameOver}`);
+    
     // Always calculate defeated feissari count for live display
     const defeatedFeissari = await calculateDefeatedFeissari(gameId);
     
@@ -670,9 +668,11 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
       if (balanceDepletedNow) {
         // Balance just became 0, use the balance from BEFORE this transaction
         score = defeatedFeissari * currentBalance;
+        console.log(`Game over (balance depleted): defeatedFeissari=${defeatedFeissari}, currentBalance=${currentBalance}, score=${score}`);
       } else {
         // Game ended for other reasons (shouldn't happen as timeExpired returns early)
         score = defeatedFeissari * llmResponse.balance;
+        console.log(`Game over (other reason): defeatedFeissari=${defeatedFeissari}, llmResponse.balance=${llmResponse.balance}, score=${score}`);
       }
     }
     
