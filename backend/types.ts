@@ -83,9 +83,6 @@ export interface UpdateGameResponse {
   feissariName: string;
   score?: number;                  // Score when game ends
   defeatedFeissari?: number;       // Number of feissari defeated
-  nextFeissariMessage?: string;    // Next feissari's greeting when transitioning
-  nextFeissariName?: string;       // Next feissari's name when transitioning
-  nextFeissariEmoteAssets?: string[]; // Next feissari's emote assets when transitioning
 }
 
 /**

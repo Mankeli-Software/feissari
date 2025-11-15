@@ -9,8 +9,106 @@ import Cookies from 'js-cookie';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
 
+// VideoBackground: renders a full-bleed, muted background video and manages
+// play/pause according to game events:
+// 1. When a new game starts (`isActive` becomes true) the video plays by default.
+// 2. When the first AI response arrives, wait 1s then pause the video.
+// 3. When an AI message with `goToNext === true` appears, start playing again.
+// 4. When the next AI response after a `goToNext` arrives, wait 1s then pause.
+// `isLoading` (AI thinking) will always force the video to play while true.
+function VideoBackground({
+  isLoading,
+  messages,
+  isActive,
+}: {
+  isLoading: boolean;
+  messages: any[];
+  isActive: boolean;
+}) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const prevIsActive = useRef<boolean>(false);
+
+  // Track the last AI message we've seen (id) and whether it had goToNext.
+  const prevLastAiName = useRef<string | number | null>(null);
+  const prevLastAiHadGoToNext = useRef<boolean>(false);
+  const pauseTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+
+    // If a new game just started, play by default
+    if (!prevIsActive.current && isActive) {
+      v.play().catch(() => {});
+    }
+
+    // Find the last AI message
+    const lastAi = [...messages].reverse().find((m) => m && m.sender === 'ai');
+    const lastAiName = lastAi?.feissariName ?? null;
+    const lastAiGoToNext = !!lastAi?.goToNext;
+
+    // If the last AI message changed, react according to rules
+    if (lastAiName !== prevLastAiName.current) {
+      // Clear any pending pause timers
+      if (pauseTimerRef.current) {
+        clearTimeout(pauseTimerRef.current);
+        pauseTimerRef.current = null;
+      }
+
+      if (lastAiGoToNext) {
+        // Feissari gave up -> play the video
+        v.play().catch(() => {});
+      } else {
+        // Regular AI response
+        // If this is the first AI response (no prev AI) OR it follows a goToNext,
+        // wait 1s then pause.
+        if (prevLastAiName.current === null || prevLastAiHadGoToNext.current) {
+          pauseTimerRef.current = window.setTimeout(() => {
+            try {
+              v.pause();
+            } catch (_) {}
+            pauseTimerRef.current = null;
+          }, 1000);
+        }
+      }
+
+      prevLastAiHadGoToNext.current = lastAiGoToNext;
+      prevLastAiName.current = lastAiName;
+    }
+
+    prevIsActive.current = isActive;
+  }, [messages, isActive, isLoading]);
+
+  // Clean up pause timer on unmount
+  useEffect(() => {
+    return () => {
+      if (pauseTimerRef.current) {
+        clearTimeout(pauseTimerRef.current);
+        pauseTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <video
+      ref={videoRef}
+      src="/background.webm"
+      // paused by default — play while loading is true or per game events
+      muted
+      playsInline
+      loop
+      preload="metadata"
+      className="pointer-events-none fixed inset-0 w-full h-full object-cover z-0"
+      aria-hidden
+    />
+  );
+}
+
 export default function GameScreen() {
   const { gameState, startGame, sendMessage, resetGame } = useGame();
+
+  // Video background ref is kept in a component below; expose it here if needed later
   const router = useRouter()
   const [inputMessage, setInputMessage] = useState('');
   const [prevScore, setPrevScore] = useState<number>(0);
@@ -86,8 +184,9 @@ export default function GameScreen() {
   // Show start screen if game hasn't started
   if (!gameState.isActive && gameState.messages.length === 0) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-emerald-50 to-green-100 dark:from-gray-900 dark:to-emerald-950">
-        <div className="w-full max-w-md space-y-8 rounded-lg bg-white p-10 shadow-2xl dark:bg-gray-800">
+      <div className="flex min-h-screen items-center justify-center relative">
+  <VideoBackground isLoading={gameState.isLoading} messages={gameState.messages} isActive={gameState.isActive} />
+        <div className="w-full max-w-md space-y-8 rounded-lg bg-white p-10 shadow-2xl dark:bg-gray-800 relative z-10">
           <div className="text-center">
             <h1 className="text-5xl font-bold text-emerald-800 dark:text-emerald-400 mb-4">
               Survive the Feissari
@@ -122,8 +221,9 @@ export default function GameScreen() {
   // Game over: we redirect immediately to leaderboard. Show a minimal redirecting indicator
   if (!gameState.isActive && gameState.messages.length > 0) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-emerald-50 to-green-100 dark:from-gray-900 dark:to-emerald-950">
-        <div className="w-full max-w-sm space-y-4 rounded-lg bg-white p-8 shadow-2xl dark:bg-gray-800 text-center">
+      <div className="flex min-h-screen items-center justify-center relative">
+  <VideoBackground isLoading={gameState.isLoading} messages={gameState.messages} isActive={gameState.isActive} />
+        <div className="w-full max-w-sm space-y-4 rounded-lg bg-white p-8 shadow-2xl dark:bg-gray-800 text-center relative z-10">
           <p className="text-lg text-gray-700 dark:text-gray-300">Saving your result and redirecting to leaderboard...</p>
           <div className="flex justify-center mt-4">
             <div className="w-6 h-6 border-4 border-emerald-600 border-dashed rounded-full animate-spin"></div>
@@ -135,9 +235,11 @@ export default function GameScreen() {
 
   // Active game screen
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-emerald-50 to-green-100 dark:from-gray-900 dark:to-emerald-950">
-      {/* Header with stats */}
-      <div className="bg-white dark:bg-gray-800 shadow-lg p-4">
+    <div className="relative">
+  <VideoBackground isLoading={gameState.isLoading} messages={gameState.messages} isActive={gameState.isActive} />
+      <div className="flex flex-col h-screen relative z-10">
+        {/* Header with stats */}
+        <div className="bg-white dark:bg-gray-800 shadow-lg p-4">
         <div className="max-w-4xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-6">
             <div className="text-center">
@@ -243,7 +345,8 @@ export default function GameScreen() {
       </div>
 
       {/* Input area */}
-      <div className="bg-white dark:bg-gray-800 shadow-lg p-4">
+        {/* Input area */}
+        <div className="bg-white dark:bg-gray-800 shadow-lg p-4">
         <div className="max-w-4xl mx-auto flex gap-2">
           <Input
             type="text"
@@ -268,6 +371,7 @@ export default function GameScreen() {
           </Button>
         </div>
       </div>
+    </div>
     </div>
   );
 }

@@ -13,9 +13,6 @@ export interface UpdateGameResponse {
   feissariName: string;
   score?: number;
   defeatedFeissari?: number;
-  nextFeissariMessage?: string;
-  nextFeissariName?: string;
-  nextFeissariEmoteAssets?: string[];
 }
 
 export interface ChatMessage {
