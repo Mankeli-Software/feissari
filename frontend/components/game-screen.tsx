@@ -96,12 +96,12 @@ export default function GameScreen() {
 
   // Game over screen - show leaderboard
   if (!gameState.isActive && gameState.messages.length > 0) {
-    if (showLeaderboard && gameState.gameId && gameState.score !== undefined && gameState.defeatedFeissari !== undefined) {
+    if (showLeaderboard && gameState.gameId) {
       return (
         <LeaderboardScreen
           gameId={gameState.gameId}
-          score={gameState.score}
-          defeatedFeissari={gameState.defeatedFeissari}
+          score={gameState.score ?? 0}
+          defeatedFeissari={gameState.defeatedFeissari ?? 0}
           finalBalance={gameState.balance}
           onNewGame={() => {
             setShowLeaderboard(false);
