@@ -131,7 +131,7 @@ async function calculateDefeatedFeissari(gameId: string): Promise<number> {
  */
 async function calculateGameScore(gameId: string, finalBalance: number, threatLevel: number): Promise<{ score: number; defeatedFeissari: number }> {
   const defeatedFeissari = await calculateDefeatedFeissari(gameId);
-  const threatLevelMultiplier = 5 - threatLevel;
+  const threatLevelMultiplier = MAX_THREAT_LEVEL - threatLevel;
   const score = defeatedFeissari * finalBalance * threatLevelMultiplier;
   console.log(`Game Score Calculation: gameId=${gameId}, finalBalance=${finalBalance}, defeatedFeissari=${defeatedFeissari}, threatLevelMultiplier=${threatLevelMultiplier}, score=${score}`);
   return { score: score || 0, defeatedFeissari: defeatedFeissari || 0 };
