@@ -26,6 +26,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     messages: [],
     currentFeissariName: '',
     isLoading: false,
+    isTransitioning: false,
   });
 
   const [startTime, setStartTime] = useState<number | null>(null);
@@ -99,6 +100,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         isActive: true,
         messages: [],
         isLoading: true,
+        isTransitioning: false,
       }));
 
       setStartTime(Date.now());
@@ -146,6 +148,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         score: data.score,
         defeatedFeissari: data.defeatedFeissari,
         isLoading: false,
+        isTransitioning: false,
       }));
     } catch (error) {
       console.error('Error getting initial message:', error);
@@ -161,7 +164,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       message: message.trim(),
     };
 
-    setGameState(prev => ({
+      setGameState(prev => ({
       ...prev,
       messages: [...prev.messages, userMessage],
       isLoading: true,
@@ -192,35 +195,78 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         goToNext: data.goToNext,
       };
 
-      // Create array of messages to add
-      const newMessages = [aiMessage];
-      
-      // If there's a next feissari message, add it too
-      if (data.nextFeissariMessage && data.nextFeissariName) {
-        const nextFeissariMessage: ChatMessage = {
-          id: `ai-${Date.now()}-next`,
-          sender: 'ai',
-          message: data.nextFeissariMessage,
-          feissariName: data.nextFeissariName,
-          emoteAssets: data.nextFeissariEmoteAssets,
-          balance: data.balance,
-          goToNext: false, // Next feissari is just starting
-        };
-        newMessages.push(nextFeissariMessage);
-      }
-
       setGameState(prev => ({
         ...prev,
-        messages: [...prev.messages, ...newMessages],
+        messages: [...prev.messages, aiMessage],
         balance: data.balance,
-        currentFeissariName: data.nextFeissariName || data.feissariName, // Use next feissari's name if available
+        currentFeissariName: data.feissariName,
         isActive: !data.gameOver,
+        // We'll manage transition with a custom flag and timed sequence
         isLoading: false,
         score: data.score,
         defeatedFeissari: data.defeatedFeissari,
       }));
+
+      // If moving to next feissari, wait 3s, then start transition animation and fetch next greeting
+      if (data.goToNext && !data.gameOver) {
+        // Show old feissari and message for 3 seconds (no loading spinner)
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        // Start background animation and hide old feissari
+        setGameState(prev => ({
+          ...prev,
+          isTransitioning: true,
+          currentFeissariName: '',
+        }));
+        // Fetch the next feissari greeting
+        await fetchNextFeissariGreeting();
+      }
     } catch (error) {
       console.error('Error sending message:', error);
+      setGameState(prev => ({ ...prev, isLoading: false }));
+    }
+  }, [gameState.gameId]);
+
+  const fetchNextFeissariGreeting = useCallback(async () => {
+    if (!gameState.gameId) return;
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/game/${gameState.gameId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: null }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch next feissari greeting');
+      }
+
+      const data: UpdateGameResponse = await response.json();
+      
+      const nextFeissariMessage: ChatMessage = {
+        id: `ai-${Date.now()}-next`,
+        sender: 'ai',
+        message: data.message,
+        feissariName: data.feissariName,
+        emoteAssets: data.emoteAssets,
+        balance: data.balance,
+        goToNext: false, // Next feissari is just starting
+      };
+
+      setGameState(prev => ({
+        ...prev,
+        messages: [...prev.messages, nextFeissariMessage],
+        balance: data.balance,
+        currentFeissariName: data.feissariName,
+        isActive: !data.gameOver,
+        isLoading: false,
+        isTransitioning: false, // stop background animation when new feissari has loaded
+        score: data.score,
+        defeatedFeissari: data.defeatedFeissari,
+      }));
+    } catch (error) {
+      console.error('Error fetching next feissari greeting:', error);
       setGameState(prev => ({ ...prev, isLoading: false }));
     }
   }, [gameState.gameId]);
@@ -255,7 +301,7 @@ export function useGame() {
 
 // EmoteImage: renders a single SVG URL or cycles through multiple SVG URLs every 500ms.
 // Accepts either a string (single URL) or string[] (multiple URLs). If no assets provided, renders null.
-export function EmoteImage({ emoteAssets }: { emoteAssets?: string[] | string }) {
+export function EmoteImage({ emoteAssets, className }: { emoteAssets?: string[] | string, className?: string }) {
   const assets = React.useMemo(() => {
     if (!emoteAssets) return [] as string[];
     return Array.isArray(emoteAssets) ? emoteAssets : [emoteAssets];
@@ -285,7 +331,7 @@ export function EmoteImage({ emoteAssets }: { emoteAssets?: string[] | string })
     <img
       src={assets[index]}
       alt="emote"
-      className="w-24 h-24 mr-3 object-contain"
+      className={`w-60 h-60 object-contain ${className ?? ''}`}
       draggable={false}
     />
   );

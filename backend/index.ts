@@ -572,6 +572,30 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
       feissari.emotes = [];
     }
 
+    // Handle null message: verify that the last chat had goToNext: true (client requesting new feissari greeting)
+    if (message === null) {
+      // Get the last chat entry overall (from any feissari)
+      const allChatsSnapshot = await firestore
+        .collection('chatHistory')
+        .doc(gameId)
+        .collection('chats')
+        .orderBy('timestamp', 'desc')
+        .limit(1)
+        .get();
+
+      // For first request, allChatsSnapshot will be empty (no prior messages)
+      // For subsequent requests, verify that the last chat had movedToNext: true
+      if (!allChatsSnapshot.empty) {
+        const lastChat = allChatsSnapshot.docs[0].data();
+        if (!lastChat.movedToNext) {
+          return res.status(400).json({
+            error: 'Invalid request: null message can only be sent after a feissari has been defeated',
+            details: 'Last chat entry did not have movedToNext: true'
+          });
+        }
+      }
+    }
+
     // Get chat history for current feissari
     const chatHistorySnapshot = await firestore
       .collection('chatHistory')
@@ -621,10 +645,6 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
     await chatRef.set(chatData);
 
     // Handle moving to next feissari
-    let nextFeissariMessage: string | null = null;
-    let nextFeissariName: string | null = null;
-    let nextFeissariEmoteAssets: string[] | null = null;
-
     if (llmResponse.goToNext) {
       // If LLM requested an increase to threat level for this ended interaction, persist it
       if (llmResponse.increaseThreatLevel) {
@@ -677,59 +697,6 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
       await gameRef.update({
         currentFeissariId: nextFeissari.id
       });
-
-      // Get the next feissari's data
-      const nextFeissariData = { id: nextFeissari.id, ...nextFeissari.data() } as Feissari;
-
-      // Validate that the feissari has required fields
-      if (!nextFeissariData.emotes || !Array.isArray(nextFeissariData.emotes)) {
-        console.error('Next feissari missing emotes field:', nextFeissari.id);
-        // Provide a default empty emotes array as fallback
-        nextFeissariData.emotes = [];
-      }
-
-      nextFeissariName = nextFeissariData.name;
-
-      // Get initial greeting from the next feissari (pass null message for initial greeting)
-      const nextFeissariResponse = await llmService.getResponse(
-        nextFeissariData,
-        llmResponse.balance,
-        [], // Empty chat history for new feissari
-        null, // null message to trigger initial greeting
-        newThreatLevel,
-      );
-
-      nextFeissariMessage = nextFeissariResponse.message;
-
-      // Get emote assets for next feissari
-      const nextEmote = nextFeissariData.emotes?.find(e => e.identifier === nextFeissariResponse.emote);
-      nextFeissariEmoteAssets = nextEmote?.assets || [];
-
-      // Store the next feissari's initial greeting in chat history
-      const nextChatRef = firestore
-        .collection('chatHistory')
-        .doc(gameId)
-        .collection('chats')
-        .doc();
-
-      const nextChatData: Omit<ChatHistory, 'id'> = {
-        feissariId: nextFeissari.id,
-        feissariName: nextFeissariData.name,
-        timestamp: admin.firestore.FieldValue.serverTimestamp() as admin.firestore.Timestamp,
-        userMessage: null, // No user message, this is an initial greeting
-        aiMessage: nextFeissariResponse.message,
-        balanceBefore: llmResponse.balance,
-        balanceAfter: nextFeissariResponse.balance,
-        emoteAssets: nextFeissariEmoteAssets,
-        movedToNext: false // This is the start with the new feissari
-      };
-
-      await nextChatRef.set(nextChatData);
-
-      // Update balance if the new feissari made changes
-      if (nextFeissariResponse.balance !== llmResponse.balance) {
-        llmResponse.balance = nextFeissariResponse.balance;
-      }
     }
 
     // Check if balance is now depleted or time expired
@@ -806,10 +773,6 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
       threatLevel: newThreatLevel, // Keep the old feissari's name
       score: score,
       defeatedFeissari: defeatedFeissari,
-      // Add next feissari's data if transitioning
-      nextFeissariMessage: nextFeissariMessage || undefined,
-      nextFeissariName: nextFeissariName || undefined,
-      nextFeissariEmoteAssets: nextFeissariEmoteAssets || undefined
     };
 
     return res.status(200).json(response);
