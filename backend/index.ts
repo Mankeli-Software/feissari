@@ -10,7 +10,14 @@ import {
   UpdateGameResponse,
   Game,
   Feissari,
-  ChatHistory
+  ChatHistory,
+  LeaderboardEntry,
+  CreateLeaderboardRequest,
+  CreateLeaderboardResponse,
+  TopLeaderboardResponse,
+  RecentLeaderboardResponse,
+  LeaderboardStatsResponse,
+  LeaderboardEntryResponse
 } from './types';
 
 // Initialize Express app
@@ -93,6 +100,38 @@ try {
 } catch (error) {
   console.error('Failed to initialize LLM Service:', error);
   console.log('Server will run but LLM operations will fail');
+}
+
+/**
+ * Helper function to calculate defeated feissari count from chat history
+ * Counts unique feissariIds where movedToNext is true
+ */
+async function calculateDefeatedFeissari(gameId: string): Promise<number> {
+  if (!firestore) return 0;
+
+  const chatSnapshot = await firestore
+    .collection('chatHistory')
+    .doc(gameId)
+    .collection('chats')
+    .where('movedToNext', '==', true)
+    .get();
+
+  const uniqueFeissariIds = new Set<string>();
+  chatSnapshot.docs.forEach(doc => {
+    const data = doc.data();
+    uniqueFeissariIds.add(data.feissariId);
+  });
+
+  return uniqueFeissariIds.size;
+}
+
+/**
+ * Helper function to calculate score and game stats
+ */
+async function calculateGameScore(gameId: string, finalBalance: number): Promise<{ score: number; defeatedFeissari: number }> {
+  const defeatedFeissari = await calculateDefeatedFeissari(gameId);
+  const score = defeatedFeissari * finalBalance;
+  return { score, defeatedFeissari };
 }
 
 // Interface for user data
@@ -341,13 +380,18 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
         ? INITIAL_BALANCE 
         : latestChatSnapshot.docs[0].data().balanceAfter;
 
+      // Calculate score and defeated feissari
+      const { score, defeatedFeissari } = await calculateGameScore(gameId, finalBalance);
+
       const response: UpdateGameResponse = {
         message: 'Aika loppui! Peli päättyi.',
         balance: finalBalance,
         emoteAssets: [],
         goToNext: false,
         gameOver: true,
-        feissariName: ''
+        feissariName: '',
+        score: score,
+        defeatedFeissari: defeatedFeissari
       };
 
       return res.status(200).json(response);
@@ -370,13 +414,18 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
     if (currentBalance <= 0) {
       await gameRef.update({ isActive: false });
       
+      // Calculate score and defeated feissari
+      const { score, defeatedFeissari } = await calculateGameScore(gameId, 0);
+
       const response: UpdateGameResponse = {
         message: 'Rahasi loppuivat! Peli päättyi.',
         balance: 0,
         emoteAssets: [],
         goToNext: false,
         gameOver: true,
-        feissariName: ''
+        feissariName: '',
+        score: score,
+        defeatedFeissari: defeatedFeissari
       };
 
       return res.status(200).json(response);
@@ -479,13 +528,24 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
       await gameRef.update({ isActive: false });
     }
 
+    // Calculate score if game is over
+    let score: number | undefined;
+    let defeatedFeissari: number | undefined;
+    if (gameOver) {
+      const gameStats = await calculateGameScore(gameId, llmResponse.balance);
+      score = gameStats.score;
+      defeatedFeissari = gameStats.defeatedFeissari;
+    }
+
     const response: UpdateGameResponse = {
       message: llmResponse.message,
       balance: llmResponse.balance,
       emoteAssets: emoteAssets,
       goToNext: llmResponse.goToNext,
       gameOver: gameOver,
-      feissariName: feissari.name
+      feissariName: feissari.name,
+      score: score,
+      defeatedFeissari: defeatedFeissari
     };
 
     return res.status(200).json(response);
@@ -493,6 +553,340 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
     console.error('Error updating game:', error);
     return res.status(500).json({
       error: 'Failed to update game',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * POST /api/leaderboard
+ * Save game score to leaderboard
+ * Body: { gameId: string }
+ */
+app.post('/api/leaderboard', async (req: Request, res: Response) => {
+  try {
+    const { gameId } = req.body as CreateLeaderboardRequest;
+
+    // Validation
+    if (!gameId || typeof gameId !== 'string' || gameId.trim() === '') {
+      return res.status(400).json({
+        error: 'Invalid gameId: gameId is required and must be a non-empty string'
+      });
+    }
+
+    if (!firestore) {
+      return res.status(503).json({
+        error: 'Firebase not configured',
+        details: 'Set FIREBASE_PROJECT_ID or FIREBASE_SERVICE_ACCOUNT_KEY environment variable'
+      });
+    }
+
+    // Get game document
+    const gameDoc = await firestore.collection('games').doc(gameId).get();
+
+    if (!gameDoc.exists) {
+      return res.status(404).json({
+        error: 'Game not found',
+        gameId
+      });
+    }
+
+    const game = { id: gameDoc.id, ...gameDoc.data() } as Game;
+
+    // Get user name
+    const userDoc = await firestore.collection('users').doc(game.userId).get();
+    if (!userDoc.exists) {
+      return res.status(404).json({
+        error: 'User not found',
+        userId: game.userId
+      });
+    }
+
+    const userData = userDoc.data();
+    const userName = userData?.name || 'Anonymous';
+
+    // Get final balance from latest chat
+    const latestChatSnapshot = await firestore
+      .collection('chatHistory')
+      .doc(gameId)
+      .collection('chats')
+      .orderBy('timestamp', 'desc')
+      .limit(1)
+      .get();
+
+    const finalBalance = latestChatSnapshot.empty
+      ? INITIAL_BALANCE
+      : latestChatSnapshot.docs[0].data().balanceAfter;
+
+    // Calculate score and defeated feissari
+    const { score, defeatedFeissari } = await calculateGameScore(gameId, finalBalance);
+
+    // Check if entry already exists for this game
+    const existingEntrySnapshot = await firestore
+      .collection('leaderboard')
+      .where('gameId', '==', gameId)
+      .limit(1)
+      .get();
+
+    if (!existingEntrySnapshot.empty) {
+      // Return existing entry
+      const existingEntry = existingEntrySnapshot.docs[0];
+      const response: CreateLeaderboardResponse = {
+        entryId: existingEntry.id,
+        score: score,
+        defeatedFeissari: defeatedFeissari,
+        finalBalance: finalBalance
+      };
+      return res.status(200).json(response);
+    }
+
+    // Create new leaderboard entry
+    const leaderboardRef = firestore.collection('leaderboard').doc();
+    const leaderboardData: Omit<LeaderboardEntry, 'id'> = {
+      userId: game.userId,
+      userName: userName,
+      gameId: gameId,
+      score: score,
+      defeatedFeissari: defeatedFeissari,
+      finalBalance: finalBalance,
+      createdAt: admin.firestore.FieldValue.serverTimestamp() as admin.firestore.Timestamp
+    };
+
+    await leaderboardRef.set(leaderboardData);
+
+    const response: CreateLeaderboardResponse = {
+      entryId: leaderboardRef.id,
+      score: score,
+      defeatedFeissari: defeatedFeissari,
+      finalBalance: finalBalance
+    };
+
+    return res.status(201).json(response);
+  } catch (error) {
+    console.error('Error creating leaderboard entry:', error);
+    return res.status(500).json({
+      error: 'Failed to create leaderboard entry',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * GET /api/leaderboard/top
+ * Get top 10 all-time highest scores
+ * Query params: userId (optional) - to include current user's entry if not in top 10
+ */
+app.get('/api/leaderboard/top', async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.query;
+
+    if (!firestore) {
+      return res.status(503).json({
+        error: 'Firebase not configured',
+        details: 'Set FIREBASE_PROJECT_ID or FIREBASE_SERVICE_ACCOUNT_KEY environment variable'
+      });
+    }
+
+    // Get top 10 scores
+    const topScoresSnapshot = await firestore
+      .collection('leaderboard')
+      .orderBy('score', 'desc')
+      .limit(10)
+      .get();
+
+    const entries: LeaderboardEntryResponse[] = topScoresSnapshot.docs.map((doc, index) => {
+      const data = doc.data();
+      return {
+        userId: data.userId,
+        userName: data.userName,
+        score: data.score,
+        defeatedFeissari: data.defeatedFeissari,
+        finalBalance: data.finalBalance,
+        createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+        rank: index + 1
+      };
+    });
+
+    // Check if current user is in top 10
+    let currentUserEntry: LeaderboardEntryResponse | undefined;
+    let currentUserRank: number | undefined;
+
+    if (userId && typeof userId === 'string') {
+      const userInTop10 = entries.find(entry => entry.userId === userId);
+      
+      if (userInTop10) {
+        currentUserEntry = userInTop10;
+      } else {
+        // Get user's best score
+        const userBestScoreSnapshot = await firestore
+          .collection('leaderboard')
+          .where('userId', '==', userId)
+          .orderBy('score', 'desc')
+          .limit(1)
+          .get();
+
+        if (!userBestScoreSnapshot.empty) {
+          const data = userBestScoreSnapshot.docs[0].data();
+          currentUserEntry = {
+            userId: data.userId,
+            userName: data.userName,
+            score: data.score,
+            defeatedFeissari: data.defeatedFeissari,
+            finalBalance: data.finalBalance,
+            createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
+          };
+
+          // Calculate rank (how many scores are better)
+          const betterScoresSnapshot = await firestore
+            .collection('leaderboard')
+            .where('score', '>', data.score)
+            .get();
+          
+          currentUserRank = betterScoresSnapshot.size + 1;
+        }
+      }
+    }
+
+    const response: TopLeaderboardResponse = {
+      entries,
+      currentUserEntry,
+      currentUserRank
+    };
+
+    return res.status(200).json(response);
+  } catch (error) {
+    console.error('Error fetching top leaderboard:', error);
+    return res.status(500).json({
+      error: 'Failed to fetch top leaderboard',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * GET /api/leaderboard/recent
+ * Get 10 most recent entries to the leaderboard
+ * Query params: userId (optional) - to include current user's recent entry if not in top 10
+ */
+app.get('/api/leaderboard/recent', async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.query;
+
+    if (!firestore) {
+      return res.status(503).json({
+        error: 'Firebase not configured',
+        details: 'Set FIREBASE_PROJECT_ID or FIREBASE_SERVICE_ACCOUNT_KEY environment variable'
+      });
+    }
+
+    // Get 10 most recent entries
+    const recentEntriesSnapshot = await firestore
+      .collection('leaderboard')
+      .orderBy('createdAt', 'desc')
+      .limit(10)
+      .get();
+
+    const entries: LeaderboardEntryResponse[] = recentEntriesSnapshot.docs.map((doc, index) => {
+      const data = doc.data();
+      return {
+        userId: data.userId,
+        userName: data.userName,
+        score: data.score,
+        defeatedFeissari: data.defeatedFeissari,
+        finalBalance: data.finalBalance,
+        createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+        rank: index + 1
+      };
+    });
+
+    // Check if current user is in recent 10
+    let currentUserEntry: LeaderboardEntryResponse | undefined;
+    let currentUserPosition: number | undefined;
+
+    if (userId && typeof userId === 'string') {
+      const userInRecent = entries.find(entry => entry.userId === userId);
+      
+      if (userInRecent) {
+        currentUserEntry = userInRecent;
+      } else {
+        // Get user's most recent score
+        const userRecentScoreSnapshot = await firestore
+          .collection('leaderboard')
+          .where('userId', '==', userId)
+          .orderBy('createdAt', 'desc')
+          .limit(1)
+          .get();
+
+        if (!userRecentScoreSnapshot.empty) {
+          const data = userRecentScoreSnapshot.docs[0].data();
+          const userCreatedAt = data.createdAt?.toDate?.() || new Date();
+          
+          currentUserEntry = {
+            userId: data.userId,
+            userName: data.userName,
+            score: data.score,
+            defeatedFeissari: data.defeatedFeissari,
+            finalBalance: data.finalBalance,
+            createdAt: userCreatedAt.toISOString()
+          };
+
+          // Calculate position (how many more recent entries there are)
+          const moreRecentSnapshot = await firestore
+            .collection('leaderboard')
+            .where('createdAt', '>', admin.firestore.Timestamp.fromDate(userCreatedAt))
+            .get();
+          
+          currentUserPosition = moreRecentSnapshot.size + 1;
+        }
+      }
+    }
+
+    const response: RecentLeaderboardResponse = {
+      entries,
+      currentUserEntry,
+      currentUserPosition
+    };
+
+    return res.status(200).json(response);
+  } catch (error) {
+    console.error('Error fetching recent leaderboard:', error);
+    return res.status(500).json({
+      error: 'Failed to fetch recent leaderboard',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * GET /api/leaderboard/stats
+ * Get leaderboard statistics (total games played and token churn)
+ */
+app.get('/api/leaderboard/stats', async (req: Request, res: Response) => {
+  try {
+    if (!firestore) {
+      return res.status(503).json({
+        error: 'Firebase not configured',
+        details: 'Set FIREBASE_PROJECT_ID or FIREBASE_SERVICE_ACCOUNT_KEY environment variable'
+      });
+    }
+
+    // Count total entries in leaderboard
+    const leaderboardSnapshot = await firestore.collection('leaderboard').count().get();
+    const totalGamesPlayed = leaderboardSnapshot.data().count;
+
+    // Calculate token churn (games * 0.08€)
+    const tokenChurn = (totalGamesPlayed * 0.08).toFixed(2);
+
+    const response: LeaderboardStatsResponse = {
+      totalGamesPlayed,
+      tokenChurn: `€${tokenChurn}`
+    };
+
+    return res.status(200).json(response);
+  } catch (error) {
+    console.error('Error fetching leaderboard stats:', error);
+    return res.status(500).json({
+      error: 'Failed to fetch leaderboard stats',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
@@ -513,6 +907,10 @@ if (process.env.NODE_ENV !== 'test') {
     console.log(`  GET /api/user/:sessionId - Get user name by session ID`);
     console.log(`  POST /api/game - Create a new game session`);
     console.log(`  PUT /api/game/:gameId - Handle game interactions`);
+    console.log(`  POST /api/leaderboard - Save game score to leaderboard`);
+    console.log(`  GET /api/leaderboard/top - Get top 10 all-time highest scores`);
+    console.log(`  GET /api/leaderboard/recent - Get 10 most recent entries`);
+    console.log(`  GET /api/leaderboard/stats - Get leaderboard statistics`);
   });
 }
 

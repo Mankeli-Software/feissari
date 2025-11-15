@@ -130,6 +130,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         balance: data.balance,
         currentFeissariName: data.feissariName,
         isActive: !data.gameOver,
+        score: data.score,
+        defeatedFeissari: data.defeatedFeissari,
       }));
     } catch (error) {
       console.error('Error getting initial message:', error);
@@ -182,6 +184,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         currentFeissariName: data.feissariName,
         isActive: !data.gameOver,
         isLoading: false,
+        score: data.score,
+        defeatedFeissari: data.defeatedFeissari,
       }));
     } catch (error) {
       console.error('Error sending message:', error);

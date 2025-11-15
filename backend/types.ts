@@ -81,4 +81,62 @@ export interface UpdateGameResponse {
   goToNext: boolean;
   gameOver: boolean;
   feissariName: string;
+  score?: number;                  // Score when game ends
+  defeatedFeissari?: number;       // Number of feissari defeated
+}
+
+/**
+ * Leaderboard entry document
+ */
+export interface LeaderboardEntry {
+  id: string;                      // Auto-generated unique entry ID
+  userId: string;                  // Reference to user identifier (sessionId)
+  userName: string;                // User's display name
+  gameId: string;                  // Reference to the game
+  score: number;                   // Score: defeatedFeissari * finalBalance
+  defeatedFeissari: number;        // Number of feissari defeated
+  finalBalance: number;            // Final balance when game ended
+  createdAt: Timestamp;            // When the entry was created
+}
+
+/**
+ * API request/response types for leaderboard
+ */
+
+export interface CreateLeaderboardRequest {
+  gameId: string;
+}
+
+export interface CreateLeaderboardResponse {
+  entryId: string;
+  score: number;
+  defeatedFeissari: number;
+  finalBalance: number;
+}
+
+export interface LeaderboardEntryResponse {
+  userId: string;
+  userName: string;
+  score: number;
+  defeatedFeissari: number;
+  finalBalance: number;
+  createdAt: string;
+  rank?: number;                   // Position in leaderboard (1-indexed)
+}
+
+export interface TopLeaderboardResponse {
+  entries: LeaderboardEntryResponse[];
+  currentUserEntry?: LeaderboardEntryResponse;
+  currentUserRank?: number;        // If user not in top 10, show their rank
+}
+
+export interface RecentLeaderboardResponse {
+  entries: LeaderboardEntryResponse[];
+  currentUserEntry?: LeaderboardEntryResponse;
+  currentUserPosition?: number;    // How many more recent entries there are
+}
+
+export interface LeaderboardStatsResponse {
+  totalGamesPlayed: number;
+  tokenChurn: string;              // Formatted string (e.g., "€24.00")
 }

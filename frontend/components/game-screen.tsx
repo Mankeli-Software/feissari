@@ -4,10 +4,14 @@ import { useState, useRef, useEffect } from 'react';
 import { useGame, EmoteImage } from '@/lib/game-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import LeaderboardScreen from '@/components/leaderboard-screen';
 
 export default function GameScreen() {
   const { gameState, startGame, sendMessage, resetGame } = useGame();
   const [inputMessage, setInputMessage] = useState('');
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [prevScore, setPrevScore] = useState<number>(0);
+  const [animatingScore, setAnimatingScore] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -17,6 +21,19 @@ export default function GameScreen() {
   useEffect(() => {
     scrollToBottom();
   }, [gameState.messages]);
+
+  // Calculate current score during gameplay
+  const currentScore = (gameState.defeatedFeissari || 0) * gameState.balance;
+
+  // Animate score changes
+  useEffect(() => {
+    if (currentScore !== prevScore && gameState.isActive) {
+      setAnimatingScore(true);
+      setPrevScore(currentScore);
+      const timer = setTimeout(() => setAnimatingScore(false), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [currentScore, prevScore, gameState.isActive]);
 
   const handleSendMessage = () => {
     if (inputMessage.trim() && !gameState.isLoading) {
@@ -67,9 +84,34 @@ export default function GameScreen() {
     );
   }
 
-  // Game over screen
+  // Game over screen - show leaderboard
   if (!gameState.isActive && gameState.messages.length > 0) {
+    if (showLeaderboard && gameState.gameId && gameState.score !== undefined && gameState.defeatedFeissari !== undefined) {
+      return (
+        <LeaderboardScreen
+          gameId={gameState.gameId}
+          score={gameState.score}
+          defeatedFeissari={gameState.defeatedFeissari}
+          finalBalance={gameState.balance}
+          onNewGame={() => {
+            setShowLeaderboard(false);
+            resetGame();
+          }}
+        />
+      );
+    }
+
+    // Show transition screen before leaderboard
     const survived = gameState.balance > 0;
+    
+    // Auto-show leaderboard after 2 seconds
+    useEffect(() => {
+      const timer = setTimeout(() => {
+        setShowLeaderboard(true);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }, []);
+
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-emerald-50 to-green-100 dark:from-gray-900 dark:to-emerald-950">
         <div className="w-full max-w-md space-y-8 rounded-lg bg-white p-10 shadow-2xl dark:bg-gray-800">
@@ -85,23 +127,29 @@ export default function GameScreen() {
               <p className="text-gray-700 dark:text-gray-300">
                 Final Balance: <span className="font-bold text-2xl">€{gameState.balance}</span>
               </p>
+              <p className="text-gray-700 dark:text-gray-300">
+                Feissari Defeated: <span className="font-bold text-2xl">{gameState.defeatedFeissari || 0}</span>
+              </p>
+              <p className="text-gray-700 dark:text-gray-300">
+                Final Score: <span className="font-bold text-2xl">{gameState.score || 0}</span>
+              </p>
               <p className="text-gray-600 dark:text-gray-400">
                 {survived 
                   ? 'You successfully resisted the feissarit!' 
                   : 'The feissarit got all your money!'}
               </p>
-              <p className="text-sm text-gray-500 dark:text-gray-500">
-                Conversations: {Math.floor(gameState.messages.length / 2)}
+              <p className="text-sm text-gray-500 dark:text-gray-500 animate-pulse">
+                Loading leaderboard...
               </p>
             </div>
           </div>
           
           <Button
-            onClick={resetGame}
+            onClick={() => setShowLeaderboard(true)}
             className="w-full h-14 text-lg font-semibold bg-emerald-600 hover:bg-emerald-700"
             size="lg"
           >
-            Play Again
+            View Leaderboard
           </Button>
         </div>
       </div>
@@ -116,6 +164,14 @@ export default function GameScreen() {
         <div className="max-w-4xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-6">
             <div className="text-center">
+              <p className="text-sm text-gray-600 dark:text-gray-400">Score</p>
+              <p className={`text-2xl font-bold text-emerald-600 dark:text-emerald-400 transition-all duration-300 ${
+                animatingScore ? 'scale-125' : 'scale-100'
+              }`}>
+                {currentScore}
+              </p>
+            </div>
+            <div className="text-center">
               <p className="text-sm text-gray-600 dark:text-gray-400">Balance</p>
               <p className={`text-2xl font-bold ${
                 gameState.balance < 30 
@@ -123,6 +179,12 @@ export default function GameScreen() {
                   : 'text-emerald-600 dark:text-emerald-400'
               }`}>
                 €{gameState.balance}
+              </p>
+            </div>
+            <div className="text-center">
+              <p className="text-sm text-gray-600 dark:text-gray-400">Defeated</p>
+              <p className="text-2xl font-bold text-gray-800 dark:text-gray-200">
+                {gameState.defeatedFeissari || 0}
               </p>
             </div>
             <div className="text-center">
