@@ -37,10 +37,11 @@ export class LLMService {
           .join('\n\n')
       : '';
 
-    // Format emotes
-    const emotesText = feissari.emotes
-      .map((e) => `- ${e.identifier}: ${e.description}`)
-      .join('\n');
+    // Format emotes - with safety check
+    const emotesText = feissari.emotes && Array.isArray(feissari.emotes)
+      ? feissari.emotes.map((e) => `- ${e.identifier}: ${e.description}`).join('\n')
+      : '- neutral: Use for general conversation';
+
 
     // Build the prompt
     const isFirstInteraction = userMessage === null;

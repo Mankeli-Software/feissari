@@ -1,22 +1,74 @@
 "use client"
 
 import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation'
 import { useGame, EmoteImage } from '@/lib/game-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import Cookies from 'js-cookie';
+
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
 
 export default function GameScreen() {
   const { gameState, startGame, sendMessage, resetGame } = useGame();
+  const router = useRouter()
   const [inputMessage, setInputMessage] = useState('');
+  const [prevScore, setPrevScore] = useState<number>(0);
+  const [animatingScore, setAnimatingScore] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  // If no session cookie present, redirect to start screen so user can create/join a session
+  useEffect(() => {
+    const sessionId = Cookies.get('feissari_session');
+    if (!sessionId) {
+      router.replace('/');
+    }
+  }, [router]);
+
   useEffect(() => {
     scrollToBottom();
   }, [gameState.messages]);
+
+  // Calculate current score during gameplay
+  const currentScore = (gameState.defeatedFeissari || 0) * gameState.balance;
+
+  // Animate score changes
+  useEffect(() => {
+    if (currentScore !== prevScore && gameState.isActive) {
+      setAnimatingScore(true);
+      setPrevScore(currentScore);
+      const timer = setTimeout(() => setAnimatingScore(false), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [currentScore, prevScore, gameState.isActive]);
+
+  // Save game to leaderboard and redirect after a short delay when game ends
+  useEffect(() => {
+    if (!gameState.isActive && gameState.messages.length > 0 && gameState.gameId) {
+      // Immediately start saving in background and redirect right away.
+      (async () => {
+        try {
+          await fetch(`${BACKEND_URL}/api/leaderboard`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ gameId: gameState.gameId }),
+          });
+        } catch (error) {
+          // Log but do not block redirect
+          console.error('Error saving game to leaderboard:', error);
+        }
+      })();
+
+      // Redirect immediately to leaderboard. We don't await the save above.
+      router.push('/leaderboard');
+    }
+  }, [gameState.isActive, gameState.messages.length, gameState.gameId, gameState.score, gameState.defeatedFeissari, gameState.balance, router]);
 
   const handleSendMessage = () => {
     if (inputMessage.trim() && !gameState.isLoading) {
@@ -67,42 +119,15 @@ export default function GameScreen() {
     );
   }
 
-  // Game over screen
+  // Game over: we redirect immediately to leaderboard. Show a minimal redirecting indicator
   if (!gameState.isActive && gameState.messages.length > 0) {
-    const survived = gameState.balance > 0;
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-emerald-50 to-green-100 dark:from-gray-900 dark:to-emerald-950">
-        <div className="w-full max-w-md space-y-8 rounded-lg bg-white p-10 shadow-2xl dark:bg-gray-800">
-          <div className="text-center">
-            <h1 className={`text-5xl font-bold mb-4 ${
-              survived 
-                ? 'text-emerald-600 dark:text-emerald-400' 
-                : 'text-red-600 dark:text-red-400'
-            }`}>
-              {survived ? '🎉 You Survived!' : '💸 Game Over'}
-            </h1>
-            <div className="space-y-4 text-lg">
-              <p className="text-gray-700 dark:text-gray-300">
-                Final Balance: <span className="font-bold text-2xl">€{gameState.balance}</span>
-              </p>
-              <p className="text-gray-600 dark:text-gray-400">
-                {survived 
-                  ? 'You successfully resisted the feissarit!' 
-                  : 'The feissarit got all your money!'}
-              </p>
-              <p className="text-sm text-gray-500 dark:text-gray-500">
-                Conversations: {Math.floor(gameState.messages.length / 2)}
-              </p>
-            </div>
+        <div className="w-full max-w-sm space-y-4 rounded-lg bg-white p-8 shadow-2xl dark:bg-gray-800 text-center">
+          <p className="text-lg text-gray-700 dark:text-gray-300">Saving your result and redirecting to leaderboard...</p>
+          <div className="flex justify-center mt-4">
+            <div className="w-6 h-6 border-4 border-emerald-600 border-dashed rounded-full animate-spin"></div>
           </div>
-          
-          <Button
-            onClick={resetGame}
-            className="w-full h-14 text-lg font-semibold bg-emerald-600 hover:bg-emerald-700"
-            size="lg"
-          >
-            Play Again
-          </Button>
         </div>
       </div>
     );
@@ -116,6 +141,14 @@ export default function GameScreen() {
         <div className="max-w-4xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-6">
             <div className="text-center">
+              <p className="text-sm text-gray-600 dark:text-gray-400">Score</p>
+              <p className={`text-2xl font-bold text-emerald-600 dark:text-emerald-400 transition-all duration-300 ${
+                animatingScore ? 'scale-125' : 'scale-100'
+              }`}>
+                {currentScore}
+              </p>
+            </div>
+            <div className="text-center">
               <p className="text-sm text-gray-600 dark:text-gray-400">Balance</p>
               <p className={`text-2xl font-bold ${
                 gameState.balance < 30 
@@ -123,6 +156,12 @@ export default function GameScreen() {
                   : 'text-emerald-600 dark:text-emerald-400'
               }`}>
                 €{gameState.balance}
+              </p>
+            </div>
+            <div className="text-center">
+              <p className="text-sm text-gray-600 dark:text-gray-400">Defeated</p>
+              <p className="text-2xl font-bold text-gray-800 dark:text-gray-200">
+                {gameState.defeatedFeissari || 0}
               </p>
             </div>
             <div className="text-center">
@@ -175,6 +214,11 @@ export default function GameScreen() {
                   </p>
                 )}
                 <p className="whitespace-pre-wrap">{msg.message}</p>
+                {msg.sender === 'ai' && msg.goToNext && (
+                  <p className="text-xs mt-2 font-semibold text-emerald-600 dark:text-emerald-400">
+                    ✨ Feissari defeated! Moving to next challenger...
+                  </p>
+                )}
                 {msg.sender === 'ai' && msg.balance !== undefined && (
                   <p className="text-xs mt-2 opacity-75">
                     Balance: €{msg.balance}

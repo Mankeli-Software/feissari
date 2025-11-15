@@ -11,6 +11,11 @@ export interface UpdateGameResponse {
   goToNext: boolean;
   gameOver: boolean;
   feissariName: string;
+  score?: number;
+  defeatedFeissari?: number;
+  nextFeissariMessage?: string;
+  nextFeissariName?: string;
+  nextFeissariEmoteAssets?: string[];
 }
 
 export interface ChatMessage {
@@ -20,6 +25,7 @@ export interface ChatMessage {
   feissariName?: string;
   emoteAssets?: string[];
   balance?: number;
+  goToNext?: boolean;  // Indicates if this message caused moving to next feissari
 }
 
 export interface GameState {
@@ -30,4 +36,33 @@ export interface GameState {
   messages: ChatMessage[];
   currentFeissariName: string;
   isLoading: boolean;
+  score?: number;
+  defeatedFeissari?: number;
+}
+
+export interface LeaderboardEntryResponse {
+  userId: string;
+  userName: string;
+  score: number;
+  defeatedFeissari: number;
+  finalBalance: number;
+  createdAt: string;
+  rank?: number;
+}
+
+export interface TopLeaderboardResponse {
+  entries: LeaderboardEntryResponse[];
+  currentUserEntry?: LeaderboardEntryResponse;
+  currentUserRank?: number;
+}
+
+export interface RecentLeaderboardResponse {
+  entries: LeaderboardEntryResponse[];
+  currentUserEntry?: LeaderboardEntryResponse;
+  currentUserPosition?: number;
+}
+
+export interface LeaderboardStatsResponse {
+  totalGamesPlayed: number;
+  tokenChurn: string;
 }
