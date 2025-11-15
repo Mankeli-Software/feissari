@@ -501,6 +501,14 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
 
     const feissari = { id: feissariDoc.id, ...feissariDoc.data() } as Feissari;
 
+    // Validate that the feissari has required fields
+    if (!feissari.emotes || !Array.isArray(feissari.emotes)) {
+      return res.status(500).json({
+        error: 'Invalid feissari data',
+        details: 'Feissari is missing emotes configuration'
+      });
+    }
+
     // Get chat history for current feissari
     const chatHistorySnapshot = await firestore
       .collection('chatHistory')
@@ -584,6 +592,17 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
       
       // Get the next feissari's data
       const nextFeissariData = { id: nextFeissari.id, ...nextFeissari.data() } as Feissari;
+      
+      // Validate that the feissari has required fields
+      if (!nextFeissariData.emotes || !Array.isArray(nextFeissariData.emotes)) {
+        console.error('Next feissari missing emotes field:', nextFeissari.id);
+        // Skip to next feissari or handle error gracefully
+        return res.status(500).json({
+          error: 'Invalid feissari data',
+          details: 'Feissari is missing emotes configuration'
+        });
+      }
+      
       nextFeissariName = nextFeissariData.name;
       
       // Get initial greeting from the next feissari (pass null message for initial greeting)
