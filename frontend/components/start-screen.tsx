@@ -39,7 +39,7 @@ export default function StartScreen() {
     try {
       setIsLoading(true)
       const response = await fetch(`${BACKEND_URL}/api/user/${sessionId}`)
-      
+
       if (response.ok) {
         const data = await response.json()
         setPlayerName(data.name)
@@ -63,10 +63,10 @@ export default function StartScreen() {
     if (playerName.trim()) {
       setIsLoading(true)
       setError(null)
-      
+
       // Generate session token
       const sessionToken = generateSessionToken()
-      
+
       try {
         // Save to backend first
         const response = await fetch(`${BACKEND_URL}/api/user`, {
@@ -87,13 +87,13 @@ export default function StartScreen() {
 
         // Only save cookie after successful backend save
         const isProduction = process.env.NODE_ENV === 'production'
-        const cookieOptions = { 
+        const cookieOptions = {
           expires: 30,
           sameSite: 'strict' as const,
           secure: isProduction, // Only use secure flag in production with HTTPS
         }
         Cookies.set(COOKIE_NAME, sessionToken, cookieOptions)
-        
+
         // Navigate to game page after successful save
         router.push('/game')
       } catch (err) {
@@ -139,21 +139,26 @@ export default function StartScreen() {
           <h1 className="text-5xl font-bold text-emerald-800 dark:text-emerald-400 mb-2">
             Survive the Feissari
           </h1>
+          <blockquote className="mt-6 p-4 border-l-4 border-emerald-600 bg-emerald-50 dark:bg-gray-900 text-left rounded">
+            <p className="italic text-gray-700 dark:text-gray-200">
+              “A feissari (Finnish, from English "face-to-face") is a **slightly annoying** person who engages in face-to-face sales or fundraising, often for commercial companies or charities.”
+            </p>
+          </blockquote>
           <p className="text-lg text-gray-600 dark:text-gray-300 mt-4">
             Enter your name to begin your journey
           </p>
         </div>
-        
+
         <div className="space-y-6">
           {error && (
             <div className="p-4 bg-red-100 border border-red-400 text-red-700 rounded dark:bg-red-900 dark:border-red-700 dark:text-red-200">
               {error}
             </div>
           )}
-          
+
           <div className="space-y-2">
-            <label 
-              htmlFor="player-name" 
+            <label
+              htmlFor="player-name"
               className="text-sm font-medium text-gray-700 dark:text-gray-200"
             >
               Player Name
@@ -173,7 +178,7 @@ export default function StartScreen() {
               disabled={isLoading}
             />
           </div>
-          
+
           <Button
             onClick={handleStartPlaying}
             disabled={!playerName.trim() || isLoading}
