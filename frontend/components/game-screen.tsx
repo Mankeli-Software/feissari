@@ -162,11 +162,12 @@ export default function GameScreen() {
         } catch (error) {
           // Log but do not block redirect
           console.error('Error saving game to leaderboard:', error);
+        } finally {
+          router.push('/leaderboard');
         }
       })();
 
-      // Redirect immediately to leaderboard. We don't await the save above.
-      router.push('/leaderboard');
+      
     }
   }, [gameState.isActive, gameState.messages.length, gameState.gameId, gameState.score, gameState.defeatedFeissari, gameState.balance, router]);
 
