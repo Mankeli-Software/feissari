@@ -380,8 +380,12 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
         ? INITIAL_BALANCE 
         : latestChatSnapshot.docs[0].data().balanceAfter;
 
+      console.log(`Time expired for game ${gameId}. Latest chat empty: ${latestChatSnapshot.empty}, finalBalance: ${finalBalance}`);
+
       // Calculate score and defeated feissari
       const { score, defeatedFeissari } = await calculateGameScore(gameId, finalBalance);
+      
+      console.log(`Calculated score for game ${gameId}: defeatedFeissari=${defeatedFeissari}, finalBalance=${finalBalance}, score=${score}`);
 
       // Save to leaderboard
       try {
@@ -406,6 +410,7 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
             createdAt: admin.firestore.FieldValue.serverTimestamp()
           };
           
+          console.log(`About to save leaderboard entry:`, leaderboardData);
           await leaderboardRef.set(leaderboardData);
           console.log(`Leaderboard entry created for game ${gameId}: score=${score}, defeatedFeissari=${defeatedFeissari}, finalBalance=${finalBalance}`);
         } else {
