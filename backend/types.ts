@@ -28,7 +28,7 @@ export interface Game {
   createdAt: Timestamp;          // When the game was created
   currentFeissariId: string;     // ID of the currently active feissari
   isActive: boolean;             // Whether game is still playable
-  threatLevel?: number;          // Accumulated threat level (starts at 0)
+  threatLevel: number;          // Accumulated threat level (starts at 0)
 }
 
 /**

@@ -27,6 +27,7 @@ const PORT = process.env.PORT || 3001;
 // Constants
 const INITIAL_BALANCE = 100;
 const GAME_DURATION_MS = 3 * 60 * 1000; // 3 minutes
+const MAX_THREAT_LEVEL = 5;
 
 // Middleware
 app.use(cors());
@@ -128,10 +129,11 @@ async function calculateDefeatedFeissari(gameId: string): Promise<number> {
 /**
  * Helper function to calculate score and game stats
  */
-async function calculateGameScore(gameId: string, finalBalance: number): Promise<{ score: number; defeatedFeissari: number }> {
+async function calculateGameScore(gameId: string, finalBalance: number, threatLevel: number): Promise<{ score: number; defeatedFeissari: number }> {
   const defeatedFeissari = await calculateDefeatedFeissari(gameId);
-  const score = defeatedFeissari * finalBalance;
-  console.log(`calculateGameScore: gameId=${gameId}, finalBalance=${finalBalance}, defeatedFeissari=${defeatedFeissari}, score=${score}`);
+  const threatLevelMultiplier = 5 - threatLevel;
+  const score = defeatedFeissari * finalBalance * threatLevelMultiplier;
+  console.log(`Game Score Calculation: gameId=${gameId}, finalBalance=${finalBalance}, defeatedFeissari=${defeatedFeissari}, threatLevelMultiplier=${threatLevelMultiplier}, score=${score}`);
   return { score: score || 0, defeatedFeissari: defeatedFeissari || 0 };
 }
 
@@ -431,7 +433,7 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
       console.log(`Time expired for game ${gameId}. Latest chat empty: ${latestChatSnapshot.empty}, finalBalance: ${finalBalance}`);
 
       // Calculate score and defeated feissari
-      const { score, defeatedFeissari } = await calculateGameScore(gameId, finalBalance);
+      const { score, defeatedFeissari } = await calculateGameScore(gameId, finalBalance, currentThreatLevel);
 
       console.log(`Calculated score for game ${gameId}: defeatedFeissari=${defeatedFeissari}, finalBalance=${finalBalance}, score=${score}`);
 
@@ -502,7 +504,7 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
       await gameRef.update({ isActive: false });
 
       // Calculate score and defeated feissari
-      const { score, defeatedFeissari } = await calculateGameScore(gameId, 0);
+      const { score, defeatedFeissari } = await calculateGameScore(gameId, 0, currentThreatLevel);
 
       // Save to leaderboard
       try {
@@ -631,7 +633,7 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
       }
 
       // If threat level reached threshold, end game immediately
-      if (newThreatLevel >= 5) {
+      if (newThreatLevel >= MAX_THREAT_LEVEL) {
         await gameRef.update({ isActive: false });
 
         const response: UpdateGameResponse = {
@@ -693,7 +695,8 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
         nextFeissariData,
         llmResponse.balance,
         [], // Empty chat history for new feissari
-        null // null message to trigger initial greeting
+        null, // null message to trigger initial greeting
+        newThreatLevel,
       );
 
       nextFeissariMessage = nextFeissariResponse.message;
@@ -879,8 +882,12 @@ app.post('/api/leaderboard', async (req: Request, res: Response) => {
       ? INITIAL_BALANCE
       : latestChatSnapshot.docs[0].data().balanceAfter;
 
+    const currentThreatLevel = latestChatSnapshot.empty
+      ? 0
+      : game.threatLevel;
+
     // Calculate score and defeated feissari
-    const { score, defeatedFeissari } = await calculateGameScore(gameId, finalBalance);
+    const { score, defeatedFeissari } = await calculateGameScore(gameId, finalBalance, currentThreatLevel);
 
     // Check if entry already exists for this game
     const existingEntrySnapshot = await firestore
