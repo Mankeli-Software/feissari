@@ -616,14 +616,18 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
     }
 
     const response: UpdateGameResponse = {
-      message: nextFeissariMessage || llmResponse.message, // Use next feissari's message if available
+      message: llmResponse.message, // Keep the old feissari's message
       balance: llmResponse.balance,
-      emoteAssets: nextFeissariEmoteAssets || emoteAssets, // Use next feissari's emote if available
+      emoteAssets: emoteAssets, // Keep the old feissari's emote
       goToNext: llmResponse.goToNext,
       gameOver: gameOver,
-      feissariName: nextFeissariName || feissari.name, // Use next feissari's name if available
+      feissariName: feissari.name, // Keep the old feissari's name
       score: score,
-      defeatedFeissari: defeatedFeissari
+      defeatedFeissari: defeatedFeissari,
+      // Add next feissari's data if transitioning
+      nextFeissariMessage: nextFeissariMessage || undefined,
+      nextFeissariName: nextFeissariName || undefined,
+      nextFeissariEmoteAssets: nextFeissariEmoteAssets || undefined
     };
 
     return res.status(200).json(response);

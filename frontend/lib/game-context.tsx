@@ -179,11 +179,28 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         goToNext: data.goToNext,
       };
 
+      // Create array of messages to add
+      const newMessages = [aiMessage];
+      
+      // If there's a next feissari message, add it too
+      if (data.nextFeissariMessage && data.nextFeissariName) {
+        const nextFeissariMessage: ChatMessage = {
+          id: `ai-${Date.now()}-next`,
+          sender: 'ai',
+          message: data.nextFeissariMessage,
+          feissariName: data.nextFeissariName,
+          emoteAssets: data.nextFeissariEmoteAssets,
+          balance: data.balance,
+          goToNext: false, // Next feissari is just starting
+        };
+        newMessages.push(nextFeissariMessage);
+      }
+
       setGameState(prev => ({
         ...prev,
-        messages: [...prev.messages, aiMessage],
+        messages: [...prev.messages, ...newMessages],
         balance: data.balance,
-        currentFeissariName: data.feissariName,
+        currentFeissariName: data.nextFeissariName || data.feissariName, // Use next feissari's name if available
         isActive: !data.gameOver,
         isLoading: false,
         score: data.score,
