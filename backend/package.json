@@ -8,7 +8,6 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "ts-node index.ts",
-    "seed": "ts-node seedFeissarit.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
@@ -25,7 +24,7 @@
   },
   "homepage": "https://github.com/Mankeli-Software/feissari#readme",
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
+    "@google/genai": "^1.29.1",
     "cors": "^2.8.5",
     "dotenv": "^16.0.0",
     "express": "^5.1.0",
@@ -38,7 +37,7 @@
     "@types/supertest": "^6.0.3",
     "@vitest/ui": "^4.0.9",
     "supertest": "^7.1.4",
-    "ts-node": "^10.9.2",
+    "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "vitest": "^4.0.9"
   }

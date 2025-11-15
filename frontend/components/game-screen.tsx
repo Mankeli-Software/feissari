@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from 'react';
-import { useGame } from '@/lib/game-context';
+import { useGame, EmoteImage } from '@/lib/game-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -38,7 +38,7 @@ export default function GameScreen() {
         <div className="w-full max-w-md space-y-8 rounded-lg bg-white p-10 shadow-2xl dark:bg-gray-800">
           <div className="text-center">
             <h1 className="text-5xl font-bold text-emerald-800 dark:text-emerald-400 mb-4">
-              Feissari Game
+              Survive the Feissari
             </h1>
             <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
               Can you survive 3 minutes without losing all your money?
@@ -153,8 +153,15 @@ export default function GameScreen() {
           {gameState.messages.map((msg) => (
             <div
               key={msg.id}
-              className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+              className={`flex items-start ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
             >
+              {/* Show emote image for AI messages on the left */}
+              {msg.sender !== 'user' && msg.emoteAssets && (
+                <div className="flex-shrink-0 flex items-start">
+                  <EmoteImage emoteAssets={msg.emoteAssets} />
+                </div>
+              )}
+
               <div
                 className={`max-w-[70%] rounded-lg p-4 ${
                   msg.sender === 'user'

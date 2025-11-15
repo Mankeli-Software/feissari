@@ -216,3 +216,41 @@ export function useGame() {
   }
   return context;
 }
+
+// EmoteImage: renders a single SVG URL or cycles through multiple SVG URLs every 500ms.
+// Accepts either a string (single URL) or string[] (multiple URLs). If no assets provided, renders null.
+export function EmoteImage({ emoteAssets }: { emoteAssets?: string[] | string }) {
+  const assets = React.useMemo(() => {
+    if (!emoteAssets) return [] as string[];
+    return Array.isArray(emoteAssets) ? emoteAssets : [emoteAssets];
+  }, [emoteAssets]);
+
+  const [index, setIndex] = React.useState(0);
+
+  React.useEffect(() => {
+    if (assets.length <= 1) {
+      setIndex(0);
+      return;
+    }
+
+    setIndex(0);
+    const id = setInterval(() => {
+      setIndex(i => (i + 1) % assets.length);
+    }, 200);
+
+    return () => clearInterval(id);
+  }, [assets]);
+
+  if (assets.length === 0) return null;
+
+  // Keep images small like a pixel-art emote
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={assets[index]}
+      alt="emote"
+      className="w-24 h-24 mr-3 object-contain"
+      draggable={false}
+    />
+  );
+}

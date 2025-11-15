@@ -2,7 +2,7 @@ import express, { Request, Response } from 'express';
 import admin from 'firebase-admin';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { LLMService } from './llmService.js';
+import { LLMService } from './llmService';
 import {
   CreateGameRequest,
   CreateGameResponse,
@@ -11,7 +11,7 @@ import {
   Game,
   Feissari,
   ChatHistory
-} from './types.js';
+} from './types';
 
 // Initialize Express app
 const app = express();
@@ -82,11 +82,10 @@ try {
 // Initialize LLM Service
 try {
   const geminiApiKey = process.env.GEMINI_API_KEY;
-  const llmModel = process.env.LLM_MODEL || 'gemini-2.0-flash-exp';
   
   if (geminiApiKey) {
-    llmService = new LLMService(geminiApiKey, llmModel);
-    console.log(`LLM Service initialized with model: ${llmModel}`);
+    llmService = new LLMService(geminiApiKey);
+    console.log(`LLM Service initialized`);
   } else {
     console.log('LLM not configured - GEMINI_API_KEY not set');
     console.log('Game endpoints will return errors without LLM configuration');

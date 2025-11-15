@@ -7,7 +7,7 @@ All requirements from the specifications have been successfully implemented.
 ## Backend Implementation
 
 ### 1. Dependencies & Configuration ✅
-- Installed `@google/generative-ai` package
+- Installed `@google/genai` package
 - Updated `.env.example` with `GEMINI_API_KEY` and `LLM_MODEL`
 - Initialized LLM service in main application
 

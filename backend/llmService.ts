@@ -1,19 +1,19 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { Feissari, LLMResponse, ChatHistory } from './types.js';
+import { GoogleGenAI } from '@google/genai';
+import { Feissari, LLMResponse, ChatHistory } from './types';
+
+const model = 'gemini-2.5-flash';
 
 /**
  * Service for interacting with Google Gemini LLM
  */
 export class LLMService {
-  private genAI: GoogleGenerativeAI;
-  private model: any;
+  private genAI: GoogleGenAI;
 
-  constructor(apiKey: string, modelName: string = 'gemini-2.0-flash-exp') {
+  constructor(apiKey: string) {
     if (!apiKey) {
       throw new Error('Gemini API key is required');
     }
-    this.genAI = new GoogleGenerativeAI(apiKey);
-    this.model = this.genAI.getGenerativeModel({ model: modelName });
+    this.genAI = new GoogleGenAI({apiKey: apiKey});
   }
 
   /**
@@ -48,7 +48,7 @@ export class LLMService {
       ? '\n\nThis is the first interaction. Start the conversation as your character would approach someone.'
       : `\n\nCustomer's latest message: "${userMessage}"`;
 
-    return `You are playing the role of a Finnish face-to-face salesperson (feissari) named ${feissari.name}.
+    return `You are playing the role of a face-to-face salesperson (feissari), but you should always respond in English named ${feissari.name}. You should always respond with no more than 2-3 sentences.
 
 ${feissari.roleInstruction}
 
@@ -70,7 +70,7 @@ RULES:
 1. Respond ONLY with valid JSON, no additional text
 2. The "emote" field must exactly match one of: ${feissari.emotes.map(e => e.identifier).join(', ')}
 3. Only deduct from balance if you successfully convince the customer to make a purchase
-4. Set "goToNext" to true when the conversation should end (sale made or you give up)
+4. Set "goToNext" to true when the conversation should end (sale made or you give up). So if you deduct balance from the user, you should mark the interaction as completed.
 5. Keep your message conversational and in character${historyText}${currentMessageText}
 
 Respond with JSON only:`;
@@ -88,9 +88,11 @@ Respond with JSON only:`;
     const prompt = this.buildPrompt(feissari, currentBalance, chatHistory, userMessage);
 
     try {
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
+      const result = await this.genAI.models.generateContent({
+        model: model,
+        contents: prompt,
+      });
+      const text = result.text!;
 
       // Try to extract JSON from the response
       let jsonText = text.trim();
@@ -120,7 +122,7 @@ Respond with JSON only:`;
       
       // Provide a fallback response
       return {
-        message: 'Anteeksi, en voi nyt puhua. Yritän myöhemmin uudelleen!',
+        message: 'Something went wrong',
         balance: currentBalance,
         emote: feissari.emotes[0]?.identifier || 'neutral',
         goToNext: true
