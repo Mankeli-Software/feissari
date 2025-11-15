@@ -327,7 +327,7 @@ app.post('/api/game', async (req: Request, res: Response) => {
       createdAt: admin.firestore.FieldValue.serverTimestamp() as admin.firestore.Timestamp,
       currentFeissariId: randomFeissari.id,
       isActive: true,
-      threatLevel: 1
+      threatLevel: 0
     };
 
     await gameRef.set(gameData);
@@ -733,7 +733,7 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
     const balanceDepletedNow = llmResponse.balance <= 0;
     const gameOver = balanceDepletedNow || timeExpired;
 
-    console.log(`Game state: gameId=${gameId}, balanceDepletedNow=${balanceDepletedNow}, timeExpired=${timeExpired}, gameOver=${gameOver}`);
+    console.log(`Game state: gameId=${gameId}, balanceDepletedNow=${balanceDepletedNow}, timeExpired=${timeExpired}, threatLevel=${newThreatLevel}, gameOver=${gameOver}`);
 
     // Always calculate defeated feissari count for live display
     const defeatedFeissari = await calculateDefeatedFeissari(gameId);

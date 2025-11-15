@@ -53,7 +53,7 @@ export class LLMService {
 
     return `You are playing the role of a face-to-face salesperson (feissari), but you should always respond in English named ${feissari.name}. You should always respond with no more than 2-3 sentences.
 
-  If you face violence or threats from the customer, you should give up immediately unless otherwise stated in your character description.
+  If you face violence from the customer, you should give up immediately unless otherwise stated in your character description.
   ${feissari.roleInstruction}
 
 IMPORTANT: You can sell products/services to the user, which will deduct money from their balance.
