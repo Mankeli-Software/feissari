@@ -528,14 +528,11 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
       await gameRef.update({ isActive: false });
     }
 
+    // Always calculate defeated feissari count for live display
+    const defeatedFeissari = await calculateDefeatedFeissari(gameId);
+    
     // Calculate score if game is over
-    let score: number | undefined;
-    let defeatedFeissari: number | undefined;
-    if (gameOver) {
-      const gameStats = await calculateGameScore(gameId, llmResponse.balance);
-      score = gameStats.score;
-      defeatedFeissari = gameStats.defeatedFeissari;
-    }
+    const score = gameOver ? defeatedFeissari * llmResponse.balance : undefined;
 
     const response: UpdateGameResponse = {
       message: llmResponse.message,

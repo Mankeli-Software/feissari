@@ -122,6 +122,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         feissariName: data.feissariName,
         emoteAssets: data.emoteAssets,
         balance: data.balance,
+        goToNext: data.goToNext,
       };
 
       setGameState(prev => ({
@@ -175,6 +176,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         feissariName: data.feissariName,
         emoteAssets: data.emoteAssets,
         balance: data.balance,
+        goToNext: data.goToNext,
       };
 
       setGameState(prev => ({

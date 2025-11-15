@@ -239,6 +239,11 @@ export default function GameScreen() {
                   </p>
                 )}
                 <p className="whitespace-pre-wrap">{msg.message}</p>
+                {msg.sender === 'ai' && msg.goToNext && (
+                  <p className="text-xs mt-2 font-semibold text-emerald-600 dark:text-emerald-400">
+                    ✨ Feissari defeated! Moving to next challenger...
+                  </p>
+                )}
                 {msg.sender === 'ai' && msg.balance !== undefined && (
                   <p className="text-xs mt-2 opacity-75">
                     Balance: €{msg.balance}

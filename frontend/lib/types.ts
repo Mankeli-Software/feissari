@@ -22,6 +22,7 @@ export interface ChatMessage {
   feissariName?: string;
   emoteAssets?: string[];
   balance?: number;
+  goToNext?: boolean;  // Indicates if this message caused moving to next feissari
 }
 
 export interface GameState {
