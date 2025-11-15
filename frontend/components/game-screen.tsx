@@ -21,10 +21,12 @@ function VideoBackground({
   isLoading,
   messages,
   isActive,
+  isTransitioning,
 }: {
   isLoading: boolean;
   messages: any[];
   isActive: boolean;
+  isTransitioning: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const prevIsActive = useRef<boolean>(false);
@@ -32,7 +34,6 @@ function VideoBackground({
   // Track the last AI message we've seen (id) and whether it had goToNext.
   const prevLastAiName = useRef<string | number | null>(null);
   const prevLastAiHadGoToNext = useRef<boolean>(false);
-  const pauseTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     const v = videoRef.current;
@@ -48,47 +49,22 @@ function VideoBackground({
     const lastAiName = lastAi?.feissariName ?? null;
     const lastAiGoToNext = !!lastAi?.goToNext;
 
-    // If the last AI message changed, react according to rules
-    if (lastAiName !== prevLastAiName.current || lastAiGoToNext) {
-      // Clear any pending pause timers
-      if (pauseTimerRef.current) {
-        clearTimeout(pauseTimerRef.current);
-        pauseTimerRef.current = null;
+    // Control background based on transition and AI messages
+    // Only play at the beginning of the game (handled above) or while transitioning between feissari
+    if (isTransitioning) {
+      v.play().catch(() => {});
+    } else {
+      // If a new AI response has arrived for a feissari (i.e., not goToNext), pause immediately
+      if ((lastAiName !== prevLastAiName.current || prevLastAiHadGoToNext.current) && !lastAiGoToNext) {
+        try { v.pause(); } catch (_) {}
       }
-
-      if (lastAiGoToNext) {
-        // Feissari gave up -> play the video
-        v.play().catch(() => {});
-      } else {
-        // Regular AI response
-        // If this is the first AI response (no prev AI) OR it follows a goToNext,
-        // wait 1s then pause.
-        if (prevLastAiName.current === null || prevLastAiHadGoToNext.current) {
-          pauseTimerRef.current = window.setTimeout(() => {
-            try {
-              v.pause();
-            } catch (_) {}
-            pauseTimerRef.current = null;
-          }, 1000);
-        }
-      }
-
-      prevLastAiHadGoToNext.current = lastAiGoToNext;
-      prevLastAiName.current = lastAiName;
     }
 
-    prevIsActive.current = isActive;
-  }, [messages, isActive, isLoading]);
+    prevLastAiHadGoToNext.current = lastAiGoToNext;
+    prevLastAiName.current = lastAiName;
 
-  // Clean up pause timer on unmount
-  useEffect(() => {
-    return () => {
-      if (pauseTimerRef.current) {
-        clearTimeout(pauseTimerRef.current);
-        pauseTimerRef.current = null;
-      }
-    };
-  }, []);
+    prevIsActive.current = isActive;
+  }, [messages, isActive, isLoading, isTransitioning]);
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
@@ -211,7 +187,7 @@ export default function GameScreen() {
   if (!gameState.isActive && gameState.messages.length === 0) {
     return (
       <div className="flex min-h-screen items-center justify-center relative">
-  <VideoBackground isLoading={gameState.isLoading} messages={gameState.messages} isActive={gameState.isActive} />
+  <VideoBackground isLoading={gameState.isLoading} messages={gameState.messages} isActive={gameState.isActive} isTransitioning={!!gameState.isTransitioning} />
         <div className="w-full max-w-md space-y-8 rounded-lg bg-white p-10 shadow-2xl dark:bg-gray-800 relative z-10">
           <div className="text-center">
             <h1 className="text-5xl font-bold text-emerald-800 dark:text-emerald-400 mb-4">
@@ -248,7 +224,7 @@ export default function GameScreen() {
   if (!gameState.isActive && gameState.messages.length > 0) {
     return (
       <div className="flex min-h-screen items-center justify-center relative">
-  <VideoBackground isLoading={gameState.isLoading} messages={gameState.messages} isActive={gameState.isActive} />
+  <VideoBackground isLoading={gameState.isLoading} messages={gameState.messages} isActive={gameState.isActive} isTransitioning={!!gameState.isTransitioning} />
         <div className="w-full max-w-sm space-y-4 rounded-lg bg-white p-8 shadow-2xl dark:bg-gray-800 text-center relative z-10">
           <p className="text-lg text-gray-700 dark:text-gray-300">Saving your result and redirecting to leaderboard...</p>
           <div className="flex justify-center mt-4">
@@ -262,7 +238,7 @@ export default function GameScreen() {
   // Active game screen
   return (
     <div className="relative">
-  <VideoBackground isLoading={gameState.isLoading} messages={gameState.messages} isActive={gameState.isActive} />
+  <VideoBackground isLoading={gameState.isLoading} messages={gameState.messages} isActive={gameState.isActive} isTransitioning={!!gameState.isTransitioning} />
       <div className="flex flex-col h-screen relative z-10">
         {/* Header with stats */}
         <div className="bg-white dark:bg-gray-800 shadow-lg p-4">
@@ -336,12 +312,23 @@ export default function GameScreen() {
           </div>
         )}
 
-        {/* User bubble at bottom-right: 1/3 from bottom, 1/3 from right; only show after first user message */}
-        {gameState.messages.some((m: ChatMessage) => m.sender === 'user') && (
-          <div className="pointer-events-none fixed bottom-[15%] right-[15%] z-10">
-            <UserBubble gameState={gameState} inputMessage={inputMessage} />
-          </div>
-        )}
+        {/* User bubble at bottom-right: hide on feissari change until user types or replies */}
+        {(() => {
+          const isTyping = inputMessage.trim().length > 0 && !gameState.isLoading;
+          const lastAiIndex = [...gameState.messages]
+            .map((m, idx) => ({ m, idx }))
+            .reverse()
+            .find(({ m }) => m.sender === 'ai' && m.feissariName === gameState.currentFeissariName)?.idx ?? -1;
+          const hasUserAfterLastAi = lastAiIndex >= 0
+            ? gameState.messages.slice(lastAiIndex + 1).some((m: ChatMessage) => m.sender === 'user')
+            : false;
+          const showUser = isTyping || hasUserAfterLastAi;
+          return showUser ? (
+            <div className="pointer-events-none fixed bottom-[15%] right-[15%] z-10">
+              <UserBubble gameState={gameState} inputMessage={inputMessage} />
+            </div>
+          ) : null;
+        })()}
       </div>
 
       {/* Input area */}
@@ -380,15 +367,17 @@ export default function GameScreen() {
 function FeissariBubble({ gameState }: { gameState: GameState }) {
   // Decide content: show typing dots if waiting for AI and feissari not changing
   const lastAi = [...gameState.messages].reverse().find((m: ChatMessage) => m.sender === 'ai');
-  const ongoingSameFeissari = Boolean(gameState.isLoading && lastAi?.feissariName === gameState.currentFeissariName);
-  const content = ongoingSameFeissari ? null : lastAi?.message;
+  const isSameFeissari = lastAi?.feissariName === gameState.currentFeissariName;
+  // Show typing only when still conversing with the same feissari and the last AI message did not signal moving on
+  const showTyping = Boolean(gameState.isLoading && isSameFeissari && !lastAi?.goToNext);
+  const content = showTyping ? null : lastAi?.message;
 
   return (
     <div className="relative">
       <div className="max-w-[70vw] sm:max-w-[50vw] bg-white/95 dark:bg-gray-800/95 text-gray-800 dark:text-gray-100 shadow-xl px-4 py-3 rounded-2xl">
         {/* top corners rounded; keep bottom edge straight where tail is */}
         <div className="text-sm sm:text-base whitespace-pre-wrap">
-          {ongoingSameFeissari ? (
+          {showTyping ? (
             <TypingDots colorClass="bg-emerald-600" />
           ) : (
             content

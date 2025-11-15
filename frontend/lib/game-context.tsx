@@ -26,6 +26,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     messages: [],
     currentFeissariName: '',
     isLoading: false,
+    isTransitioning: false,
   });
 
   const [startTime, setStartTime] = useState<number | null>(null);
@@ -99,6 +100,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         isActive: true,
         messages: [],
         isLoading: true,
+        isTransitioning: false,
       }));
 
       setStartTime(Date.now());
@@ -146,6 +148,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         score: data.score,
         defeatedFeissari: data.defeatedFeissari,
         isLoading: false,
+        isTransitioning: false,
       }));
     } catch (error) {
       console.error('Error getting initial message:', error);
@@ -161,7 +164,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       message: message.trim(),
     };
 
-    setGameState(prev => ({
+      setGameState(prev => ({
       ...prev,
       messages: [...prev.messages, userMessage],
       isLoading: true,
@@ -198,16 +201,24 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         balance: data.balance,
         currentFeissariName: data.feissariName,
         isActive: !data.gameOver,
-        isLoading: data.goToNext, // Keep loading if moving to next to fetch new feissari
+        // We'll manage transition with a custom flag and timed sequence
+        isLoading: false,
         score: data.score,
         defeatedFeissari: data.defeatedFeissari,
       }));
 
-      // If moving to next feissari, fetch the next feissari's greeting
+      // If moving to next feissari, wait 3s, then start transition animation and fetch next greeting
       if (data.goToNext && !data.gameOver) {
+        // Show old feissari and message for 3 seconds (no loading spinner)
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        // Start background animation and hide old feissari
+        setGameState(prev => ({
+          ...prev,
+          isTransitioning: true,
+          currentFeissariName: '',
+        }));
+        // Fetch the next feissari greeting
         await fetchNextFeissariGreeting();
-      } else {
-        setGameState(prev => ({ ...prev, isLoading: false }));
       }
     } catch (error) {
       console.error('Error sending message:', error);
@@ -250,6 +261,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         currentFeissariName: data.feissariName,
         isActive: !data.gameOver,
         isLoading: false,
+        isTransitioning: false, // stop background animation when new feissari has loaded
         score: data.score,
         defeatedFeissari: data.defeatedFeissari,
       }));
