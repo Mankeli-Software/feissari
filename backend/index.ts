@@ -491,6 +491,10 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
     await chatRef.set(chatData);
 
     // Handle moving to next feissari
+    let nextFeissariMessage: string | null = null;
+    let nextFeissariName: string | null = null;
+    let nextFeissariEmoteAssets: string[] | null = null;
+    
     if (llmResponse.goToNext) {
       // Get all feissarit ordered by ID
       const allFeissaritSnapshot = await firestore
@@ -519,28 +523,105 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
       await gameRef.update({
         currentFeissariId: nextFeissari.id
       });
+      
+      // Get the next feissari's data
+      const nextFeissariData = { id: nextFeissari.id, ...nextFeissari.data() } as Feissari;
+      nextFeissariName = nextFeissariData.name;
+      
+      // Get initial greeting from the next feissari (pass null message for initial greeting)
+      const nextFeissariResponse = await llmService.getResponse(
+        nextFeissariData,
+        llmResponse.balance,
+        [], // Empty chat history for new feissari
+        null // null message to trigger initial greeting
+      );
+      
+      nextFeissariMessage = nextFeissariResponse.message;
+      
+      // Get emote assets for next feissari
+      const nextEmote = nextFeissariData.emotes.find(e => e.identifier === nextFeissariResponse.emote);
+      nextFeissariEmoteAssets = nextEmote ? nextEmote.assets : [];
+      
+      // Store the next feissari's initial greeting in chat history
+      const nextChatRef = firestore
+        .collection('chatHistory')
+        .doc(gameId)
+        .collection('chats')
+        .doc();
+      
+      const nextChatData: Omit<ChatHistory, 'id'> = {
+        feissariId: nextFeissari.id,
+        feissariName: nextFeissariData.name,
+        timestamp: admin.firestore.FieldValue.serverTimestamp() as admin.firestore.Timestamp,
+        userMessage: null, // No user message, this is an initial greeting
+        aiMessage: nextFeissariResponse.message,
+        balanceBefore: llmResponse.balance,
+        balanceAfter: nextFeissariResponse.balance,
+        emoteAssets: nextFeissariEmoteAssets,
+        movedToNext: false // This is the start with the new feissari
+      };
+      
+      await nextChatRef.set(nextChatData);
+      
+      // Update balance if the new feissari made changes
+      if (nextFeissariResponse.balance !== llmResponse.balance) {
+        llmResponse.balance = nextFeissariResponse.balance;
+      }
     }
 
     // Check if balance is now depleted
     const gameOver = llmResponse.balance <= 0 || timeExpired;
     
-    if (gameOver) {
-      await gameRef.update({ isActive: false });
-    }
-
     // Always calculate defeated feissari count for live display
     const defeatedFeissari = await calculateDefeatedFeissari(gameId);
     
     // Calculate score if game is over
     const score = gameOver ? defeatedFeissari * llmResponse.balance : undefined;
+    
+    if (gameOver) {
+      await gameRef.update({ isActive: false });
+      
+      // Automatically save to leaderboard when game ends
+      try {
+        // Get user name
+        const userDoc = await firestore.collection('users').doc(game.userId).get();
+        const userName = userDoc.exists ? (userDoc.data()?.name || 'Anonymous') : 'Anonymous';
+        
+        // Check if entry already exists for this game
+        const existingEntrySnapshot = await firestore
+          .collection('leaderboard')
+          .where('gameId', '==', gameId)
+          .limit(1)
+          .get();
+        
+        // Only create if doesn't exist
+        if (existingEntrySnapshot.empty) {
+          const leaderboardRef = firestore.collection('leaderboard').doc();
+          const leaderboardData = {
+            userId: game.userId,
+            userName: userName,
+            gameId: gameId,
+            score: score || 0,
+            defeatedFeissari: defeatedFeissari,
+            finalBalance: llmResponse.balance,
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+          };
+          
+          await leaderboardRef.set(leaderboardData);
+        }
+      } catch (leaderboardError) {
+        // Log error but don't fail the game update
+        console.error('Error saving to leaderboard:', leaderboardError);
+      }
+    }
 
     const response: UpdateGameResponse = {
-      message: llmResponse.message,
+      message: nextFeissariMessage || llmResponse.message, // Use next feissari's message if available
       balance: llmResponse.balance,
-      emoteAssets: emoteAssets,
+      emoteAssets: nextFeissariEmoteAssets || emoteAssets, // Use next feissari's emote if available
       goToNext: llmResponse.goToNext,
       gameOver: gameOver,
-      feissariName: feissari.name,
+      feissariName: nextFeissariName || feissari.name, // Use next feissari's name if available
       score: score,
       defeatedFeissari: defeatedFeissari
     };

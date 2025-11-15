@@ -33,7 +33,7 @@ export default function LeaderboardScreen({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const saveAndFetchLeaderboard = async () => {
+    const fetchLeaderboard = async () => {
       const sessionId = Cookies.get('feissari_session');
       if (!sessionId) {
         setError('No session found');
@@ -42,14 +42,7 @@ export default function LeaderboardScreen({
       }
 
       try {
-        // Save score to leaderboard
-        await fetch(`${BACKEND_URL}/api/leaderboard`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ gameId })
-        });
-
-        // Fetch leaderboards
+        // Fetch leaderboards (backend automatically saves scores when game ends)
         const [topResponse, recentResponse, statsResponse] = await Promise.all([
           fetch(`${BACKEND_URL}/api/leaderboard/top?userId=${sessionId}`),
           fetch(`${BACKEND_URL}/api/leaderboard/recent?userId=${sessionId}`),
@@ -78,7 +71,7 @@ export default function LeaderboardScreen({
       }
     };
 
-    saveAndFetchLeaderboard();
+    fetchLeaderboard();
   }, [gameId]);
 
   const sessionId = Cookies.get('feissari_session');
