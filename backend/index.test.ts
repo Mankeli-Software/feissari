@@ -256,5 +256,105 @@ describe('Backend API Tests', () => {
       expect(response.body.error).toContain('Firebase not configured');
     });
   });
+
+  describe('POST /api/leaderboard', () => {
+    it('should return 400 when gameId is missing', async () => {
+      const response = await request(app)
+        .post('/api/leaderboard')
+        .send({})
+        .expect('Content-Type', /json/)
+        .expect(400);
+
+      expect(response.body).toHaveProperty('error');
+      expect(response.body.error).toContain('gameId');
+    });
+
+    it('should return 400 when gameId is empty string', async () => {
+      const response = await request(app)
+        .post('/api/leaderboard')
+        .send({ gameId: '   ' })
+        .expect('Content-Type', /json/)
+        .expect(400);
+
+      expect(response.body).toHaveProperty('error');
+      expect(response.body.error).toContain('gameId');
+    });
+
+    it('should return 400 when gameId is not a string', async () => {
+      const response = await request(app)
+        .post('/api/leaderboard')
+        .send({ gameId: 123 })
+        .expect('Content-Type', /json/)
+        .expect(400);
+
+      expect(response.body).toHaveProperty('error');
+      expect(response.body.error).toContain('gameId');
+    });
+
+    it('should return 503 when Firebase is not configured', async () => {
+      const response = await request(app)
+        .post('/api/leaderboard')
+        .send({ gameId: 'test-game-123' })
+        .expect('Content-Type', /json/)
+        .expect(503);
+
+      expect(response.body).toHaveProperty('error');
+      expect(response.body.error).toContain('Firebase not configured');
+    });
+  });
+
+  describe('GET /api/leaderboard/top', () => {
+    it('should return 503 when Firebase is not configured', async () => {
+      const response = await request(app)
+        .get('/api/leaderboard/top')
+        .expect('Content-Type', /json/)
+        .expect(503);
+
+      expect(response.body).toHaveProperty('error');
+      expect(response.body.error).toContain('Firebase not configured');
+    });
+
+    it('should accept optional userId query parameter', async () => {
+      const response = await request(app)
+        .get('/api/leaderboard/top?userId=test-user-123')
+        .expect('Content-Type', /json/)
+        .expect(503); // Will fail at Firebase check
+
+      expect(response.body.error).not.toContain('Invalid userId');
+    });
+  });
+
+  describe('GET /api/leaderboard/recent', () => {
+    it('should return 503 when Firebase is not configured', async () => {
+      const response = await request(app)
+        .get('/api/leaderboard/recent')
+        .expect('Content-Type', /json/)
+        .expect(503);
+
+      expect(response.body).toHaveProperty('error');
+      expect(response.body.error).toContain('Firebase not configured');
+    });
+
+    it('should accept optional userId query parameter', async () => {
+      const response = await request(app)
+        .get('/api/leaderboard/recent?userId=test-user-123')
+        .expect('Content-Type', /json/)
+        .expect(503); // Will fail at Firebase check
+
+      expect(response.body.error).not.toContain('Invalid userId');
+    });
+  });
+
+  describe('GET /api/leaderboard/stats', () => {
+    it('should return 503 when Firebase is not configured', async () => {
+      const response = await request(app)
+        .get('/api/leaderboard/stats')
+        .expect('Content-Type', /json/)
+        .expect(503);
+
+      expect(response.body).toHaveProperty('error');
+      expect(response.body.error).toContain('Firebase not configured');
+    });
+  });
 });
 

@@ -30,9 +30,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const [startTime, setStartTime] = useState<number | null>(null);
 
-  // Timer effect
+  // Timer effect - counts down and marks game inactive when time expires
+  // The backend automatically saves to leaderboard when it receives any API call
+  // after the time has expired, so no need to make a separate API call here
   useEffect(() => {
     if (!gameState.isActive || !startTime) return;
+
+    let timeExpiredHandled = false;
 
     const interval = setInterval(() => {
       const elapsed = Date.now() - startTime;
@@ -43,11 +47,19 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         timeRemaining: remaining,
       }));
 
-      if (remaining <= 0) {
-        setGameState(prev => ({
-          ...prev,
-          isActive: false,
-        }));
+      if (remaining <= 0 && !timeExpiredHandled) {
+        timeExpiredHandled = true;
+        clearInterval(interval); // Stop the timer immediately
+        // Mark game as inactive and calculate final score
+        // The leaderboard save is handled by the backend automatically
+        setGameState(prev => {
+          const finalScore = (prev.defeatedFeissari || 0) * prev.balance;
+          return {
+            ...prev,
+            isActive: false,
+            score: finalScore,
+          };
+        });
       }
     }, 1000);
 
@@ -86,7 +98,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         timeRemaining: GAME_DURATION_MS / 1000,
         isActive: true,
         messages: [],
-        isLoading: false,
+        isLoading: true,
       }));
 
       setStartTime(Date.now());
@@ -122,6 +134,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         feissariName: data.feissariName,
         emoteAssets: data.emoteAssets,
         balance: data.balance,
+        goToNext: data.goToNext,
       };
 
       setGameState(prev => ({
@@ -130,6 +143,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         balance: data.balance,
         currentFeissariName: data.feissariName,
         isActive: !data.gameOver,
+        score: data.score,
+        defeatedFeissari: data.defeatedFeissari,
+        isLoading: false,
       }));
     } catch (error) {
       console.error('Error getting initial message:', error);
@@ -173,15 +189,35 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         feissariName: data.feissariName,
         emoteAssets: data.emoteAssets,
         balance: data.balance,
+        goToNext: data.goToNext,
       };
+
+      // Create array of messages to add
+      const newMessages = [aiMessage];
+      
+      // If there's a next feissari message, add it too
+      if (data.nextFeissariMessage && data.nextFeissariName) {
+        const nextFeissariMessage: ChatMessage = {
+          id: `ai-${Date.now()}-next`,
+          sender: 'ai',
+          message: data.nextFeissariMessage,
+          feissariName: data.nextFeissariName,
+          emoteAssets: data.nextFeissariEmoteAssets,
+          balance: data.balance,
+          goToNext: false, // Next feissari is just starting
+        };
+        newMessages.push(nextFeissariMessage);
+      }
 
       setGameState(prev => ({
         ...prev,
-        messages: [...prev.messages, aiMessage],
+        messages: [...prev.messages, ...newMessages],
         balance: data.balance,
-        currentFeissariName: data.feissariName,
+        currentFeissariName: data.nextFeissariName || data.feissariName, // Use next feissari's name if available
         isActive: !data.gameOver,
         isLoading: false,
+        score: data.score,
+        defeatedFeissari: data.defeatedFeissari,
       }));
     } catch (error) {
       console.error('Error sending message:', error);

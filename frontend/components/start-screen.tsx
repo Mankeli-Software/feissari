@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Cookies from "js-cookie"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import GameScreen from "@/components/game-screen"
+import { useRouter } from 'next/navigation'
 
 const COOKIE_NAME = "feissari_session"
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001"
@@ -20,15 +20,17 @@ export default function StartScreen() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const router = useRouter()
+
   useEffect(() => {
     // This effect runs only once on mount
     setIsClient(true)
-    
+
     // Check if user already has a session token
     const existingToken = Cookies.get(COOKIE_NAME)
-    
+
     if (existingToken) {
-      // Verify session with backend
+      // Verify session with backend and then navigate to /game on success
       fetchUserFromBackend(existingToken)
     }
   }, [])
@@ -41,7 +43,8 @@ export default function StartScreen() {
       if (response.ok) {
         const data = await response.json()
         setPlayerName(data.name)
-        setIsStarted(true)
+        // Go to /game so StartScreen stays independent of GameScreen
+        router.push('/game')
       } else if (response.status === 404) {
         // User not found in backend, clear the cookie
         Cookies.remove(COOKIE_NAME)
@@ -91,7 +94,8 @@ export default function StartScreen() {
         }
         Cookies.set(COOKIE_NAME, sessionToken, cookieOptions)
         
-        setIsStarted(true)
+        // Navigate to game page after successful save
+        router.push('/game')
       } catch (err) {
         console.error('Error saving user:', err)
         setError(err instanceof Error ? err.message : 'Failed to start game. Please try again.')
@@ -114,7 +118,7 @@ export default function StartScreen() {
     return null
   }
 
-  if (isLoading && !isStarted) {
+  if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-emerald-50 to-green-100 dark:from-gray-900 dark:to-emerald-950">
         <div className="flex flex-col items-center gap-4 text-center">
@@ -125,9 +129,8 @@ export default function StartScreen() {
     )
   }
 
-  if (isStarted) {
-    return <GameScreen />;
-  }
+  // StartScreen only handles starting / session management and routing.
+  // Navigation to /game is done via router.push after creating/fetching session.
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-emerald-50 to-green-100 dark:from-gray-900 dark:to-emerald-950">
