@@ -89,6 +89,8 @@ export interface UpdateGameResponse {
   nextFeissariMessage?: string;    // Next feissari's greeting when transitioning
   nextFeissariName?: string;       // Next feissari's name when transitioning
   nextFeissariEmoteAssets?: string[]; // Next feissari's emote assets when transitioning
+  threatLevel: number;            // Current threat level
+  quickActions: string[];
 }
 
 /**
@@ -145,6 +147,4 @@ export interface RecentLeaderboardResponse {
 export interface LeaderboardStatsResponse {
   totalGamesPlayed: number;
   tokenChurn: string;              // Formatted string (e.g., "€24.00")
-  quickActions: string[];
-  threatLevel: number;
 }
