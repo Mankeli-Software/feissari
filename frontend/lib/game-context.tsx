@@ -289,7 +289,7 @@ export function useGame() {
 
 // EmoteImage: renders a single SVG URL or cycles through multiple SVG URLs every 500ms.
 // Accepts either a string (single URL) or string[] (multiple URLs). If no assets provided, renders null.
-export function EmoteImage({ emoteAssets }: { emoteAssets?: string[] | string }) {
+export function EmoteImage({ emoteAssets, className }: { emoteAssets?: string[] | string, className?: string }) {
   const assets = React.useMemo(() => {
     if (!emoteAssets) return [] as string[];
     return Array.isArray(emoteAssets) ? emoteAssets : [emoteAssets];
@@ -319,7 +319,7 @@ export function EmoteImage({ emoteAssets }: { emoteAssets?: string[] | string })
     <img
       src={assets[index]}
       alt="emote"
-      className="w-24 h-24 mr-3 object-contain"
+      className={`w-60 h-60 object-contain ${className ?? ''}`}
       draggable={false}
     />
   );

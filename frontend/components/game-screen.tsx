@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation'
 import { useGame, EmoteImage } from '@/lib/game-context';
+import type { GameState, ChatMessage } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Cookies from 'js-cookie';
@@ -114,6 +115,9 @@ export default function GameScreen() {
   const [prevScore, setPrevScore] = useState<number>(0);
   const [animatingScore, setAnimatingScore] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const prevFeissariRef = useRef<string | null>(null);
+  const [emoteVisible, setEmoteVisible] = useState(false);
+  const [showFeissariBubble, setShowFeissariBubble] = useState(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -130,6 +134,28 @@ export default function GameScreen() {
   useEffect(() => {
     scrollToBottom();
   }, [gameState.messages]);
+
+  // Animate emote when feissari changes: fade in + slide up for 1s
+  useEffect(() => {
+    const current = gameState.currentFeissariName || null;
+    if (current && current !== prevFeissariRef.current) {
+      setEmoteVisible(false);
+      setShowFeissariBubble(false);
+      const raf = requestAnimationFrame(() => setEmoteVisible(true));
+      const timer = setTimeout(() => setShowFeissariBubble(true), 1000);
+      prevFeissariRef.current = current;
+      return () => {
+        cancelAnimationFrame(raf);
+        clearTimeout(timer);
+      };
+    }
+    // If first time setting current feissari
+    if (current && prevFeissariRef.current === null) {
+      setEmoteVisible(true);
+      setTimeout(() => setShowFeissariBubble(true), 1000);
+      prevFeissariRef.current = current;
+    }
+  }, [gameState.currentFeissariName]);
 
   // Calculate current score during gameplay
   const currentScore = (gameState.defeatedFeissari || 0) * gameState.balance;
@@ -288,60 +314,34 @@ export default function GameScreen() {
         </div>
       </div>
 
-      {/* Chat messages */}
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="max-w-4xl mx-auto space-y-4">
-          {gameState.messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex items-start ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              {/* Show emote image for AI messages on the left */}
-              {msg.sender !== 'user' && msg.emoteAssets && (
-                <div className="flex-shrink-0 flex items-start">
-                  <EmoteImage emoteAssets={msg.emoteAssets} />
-                </div>
-              )}
+      {/* Focused chat UI: only newest feissari message and newest own message */}
+      <div className="flex-1 relative">
+        {/* Feissari emote + bubble centered X, 1/3 from bottom Y */}
+        {gameState.currentFeissariName && (
+          <div className="pointer-events-none fixed left-1/2 bottom-[24%] -translate-x-2/3 flex flex-col items-center gap-3 z-10">
+            {/* Speech bubble appears after emote entrance animation */}
+            {showFeissariBubble && (
+              <FeissariBubble gameState={gameState} />
+            )}
+            {/* Emote with entrance animation */}
+            <div className={`transition-all duration-1000 ${emoteVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+              {(() => {
+                const lastAi = [...gameState.messages].reverse().find(m => m.sender === 'ai');
+                const emoteAssets = lastAi?.emoteAssets;
+                return emoteAssets ? (
+                  <EmoteImage emoteAssets={emoteAssets} className="mr-0" />
+                ) : null;
+              })()}
+            </div>
+          </div>
+        )}
 
-              <div
-                className={`max-w-[70%] rounded-lg p-4 ${
-                  msg.sender === 'user'
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 shadow-md'
-                }`}
-              >
-                {msg.sender === 'ai' && msg.feissariName && (
-                  <p className="text-xs font-semibold mb-2 text-emerald-600 dark:text-emerald-400">
-                    {msg.feissariName}
-                  </p>
-                )}
-                <p className="whitespace-pre-wrap">{msg.message}</p>
-                {msg.sender === 'ai' && msg.goToNext && (
-                  <p className="text-xs mt-2 font-semibold text-emerald-600 dark:text-emerald-400">
-                    ✨ Feissari defeated! Moving to next challenger...
-                  </p>
-                )}
-                {msg.sender === 'ai' && msg.balance !== undefined && (
-                  <p className="text-xs mt-2 opacity-75">
-                    Balance: €{msg.balance}
-                  </p>
-                )}
-              </div>
-            </div>
-          ))}
-          {gameState.isLoading && (
-            <div className="flex justify-start">
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-md">
-                <div className="flex space-x-2">
-                  <div className="w-2 h-2 bg-emerald-600 rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-emerald-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                  <div className="w-2 h-2 bg-emerald-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                </div>
-              </div>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
+        {/* User bubble at bottom-right: 1/3 from bottom, 1/3 from right; only show after first user message */}
+        {gameState.messages.some((m: ChatMessage) => m.sender === 'user') && (
+          <div className="pointer-events-none fixed bottom-[15%] right-[15%] z-10">
+            <UserBubble gameState={gameState} inputMessage={inputMessage} />
+          </div>
+        )}
       </div>
 
       {/* Input area */}
@@ -372,6 +372,56 @@ export default function GameScreen() {
         </div>
       </div>
     </div>
+    </div>
+  );
+}
+
+// Bubble components
+function FeissariBubble({ gameState }: { gameState: GameState }) {
+  // Decide content: show typing dots if waiting for AI and feissari not changing
+  const lastAi = [...gameState.messages].reverse().find((m: ChatMessage) => m.sender === 'ai');
+  const ongoingSameFeissari = Boolean(gameState.isLoading && lastAi?.feissariName === gameState.currentFeissariName);
+  const content = ongoingSameFeissari ? null : lastAi?.message;
+
+  return (
+    <div className="relative">
+      <div className="max-w-[70vw] sm:max-w-[50vw] bg-white/95 dark:bg-gray-800/95 text-gray-800 dark:text-gray-100 shadow-xl px-4 py-3 rounded-2xl">
+        {/* top corners rounded; keep bottom edge straight where tail is */}
+        <div className="text-sm sm:text-base whitespace-pre-wrap">
+          {ongoingSameFeissari ? (
+            <TypingDots colorClass="bg-emerald-600" />
+          ) : (
+            content
+          )}
+        </div>
+      </div>
+      {/* Tail pointing down to emote */}
+      <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-3 h-3 rotate-45 bg-white dark:bg-gray-800 shadow-md"></div>
+    </div>
+  );
+}
+
+function UserBubble({ gameState, inputMessage }: { gameState: GameState; inputMessage: string }) {
+  const lastUser = [...gameState.messages].reverse().find((m: ChatMessage) => m.sender === 'user');
+  const isTyping = inputMessage.trim().length > 0 && !gameState.isLoading;
+  const content = isTyping ? null : lastUser?.message;
+
+  // Bubble with bottom-right corner not rounded (toward user position)
+  return (
+    <div className="max-w-[40vw] sm:max-w-[35vw] bg-emerald-600/95 text-white px-4 py-3 rounded-tl-2xl rounded-tr-2xl rounded-bl-2xl rounded-br-none shadow-xl">
+      <div className="text-sm sm:text-base whitespace-pre-wrap">
+        {isTyping ? <TypingDots colorClass="bg-white" /> : content}
+      </div>
+    </div>
+  );
+}
+
+function TypingDots({ colorClass = 'bg-emerald-600' }: { colorClass?: string }) {
+  return (
+    <div className="flex items-center gap-1 h-4">
+      <span className={`w-2 h-2 rounded-full ${colorClass} animate-bounce`}></span>
+      <span className={`w-2 h-2 rounded-full ${colorClass} animate-bounce`} style={{ animationDelay: '0.12s' }}></span>
+      <span className={`w-2 h-2 rounded-full ${colorClass} animate-bounce`} style={{ animationDelay: '0.24s' }}></span>
     </div>
   );
 }
