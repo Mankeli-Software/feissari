@@ -28,6 +28,7 @@ export interface Game {
   createdAt: Timestamp;          // When the game was created
   currentFeissariId: string;     // ID of the currently active feissari
   isActive: boolean;             // Whether game is still playable
+  threatLevel: number;          // Accumulated threat level (starts at 0)
 }
 
 /**
@@ -54,6 +55,8 @@ export interface LLMResponse {
   balance: number;               // Updated balance (after potential purchase)
   emote: string;                 // Emote identifier to use
   goToNext: boolean;             // Whether to move to next feissari
+  quickActions: string[];        // Array of three short quick-action headers
+  increaseThreatLevel: boolean;  // true if this interaction should increase stored threat level
 }
 
 /**
@@ -83,6 +86,8 @@ export interface UpdateGameResponse {
   feissariName: string;
   score?: number;                  // Score when game ends
   defeatedFeissari?: number;       // Number of feissari defeated
+  threatLevel: number;            // Current threat level
+  quickActions: string[];
 }
 
 /**

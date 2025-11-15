@@ -27,6 +27,7 @@ const PORT = process.env.PORT || 3001;
 // Constants
 const INITIAL_BALANCE = 100;
 const GAME_DURATION_MS = 3 * 60 * 1000; // 3 minutes
+const MAX_THREAT_LEVEL = 5;
 
 // Middleware
 app.use(cors());
@@ -89,7 +90,7 @@ try {
 // Initialize LLM Service
 try {
   const geminiApiKey = process.env.GEMINI_API_KEY;
-  
+
   if (geminiApiKey) {
     llmService = new LLMService(geminiApiKey);
     console.log(`LLM Service initialized`);
@@ -128,10 +129,11 @@ async function calculateDefeatedFeissari(gameId: string): Promise<number> {
 /**
  * Helper function to calculate score and game stats
  */
-async function calculateGameScore(gameId: string, finalBalance: number): Promise<{ score: number; defeatedFeissari: number }> {
+async function calculateGameScore(gameId: string, finalBalance: number, threatLevel: number): Promise<{ score: number; defeatedFeissari: number }> {
   const defeatedFeissari = await calculateDefeatedFeissari(gameId);
-  const score = defeatedFeissari * finalBalance;
-  console.log(`calculateGameScore: gameId=${gameId}, finalBalance=${finalBalance}, defeatedFeissari=${defeatedFeissari}, score=${score}`);
+  const threatLevelMultiplier = MAX_THREAT_LEVEL - threatLevel;
+  const score = defeatedFeissari * finalBalance * threatLevelMultiplier;
+  console.log(`Game Score Calculation: gameId=${gameId}, finalBalance=${finalBalance}, defeatedFeissari=${defeatedFeissari}, threatLevelMultiplier=${threatLevelMultiplier}, score=${score}`);
   return { score: score || 0, defeatedFeissari: defeatedFeissari || 0 };
 }
 
@@ -197,14 +199,14 @@ app.post('/api/user', async (req: Request, res: Response) => {
 
     // Validation
     if (!name || typeof name !== 'string' || name.trim() === '') {
-      return res.status(400).json({ 
-        error: 'Invalid name: name is required and must be a non-empty string' 
+      return res.status(400).json({
+        error: 'Invalid name: name is required and must be a non-empty string'
       });
     }
 
     if (!sessionId || typeof sessionId !== 'string' || sessionId.trim() === '') {
-      return res.status(400).json({ 
-        error: 'Invalid sessionId: sessionId is required and must be a non-empty string' 
+      return res.status(400).json({
+        error: 'Invalid sessionId: sessionId is required and must be a non-empty string'
       });
     }
 
@@ -229,7 +231,7 @@ app.post('/api/user', async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error saving user:', error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       error: 'Failed to save user data',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -247,8 +249,8 @@ app.get('/api/user/:sessionId', async (req: Request, res: Response) => {
 
     // Validation
     if (!sessionId || sessionId.trim() === '') {
-      return res.status(400).json({ 
-        error: 'Invalid sessionId: sessionId is required' 
+      return res.status(400).json({
+        error: 'Invalid sessionId: sessionId is required'
       });
     }
 
@@ -263,9 +265,9 @@ app.get('/api/user/:sessionId', async (req: Request, res: Response) => {
     const userDoc = await firestore.collection('users').doc(sessionId).get();
 
     if (!userDoc.exists) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         error: 'User not found',
-        sessionId 
+        sessionId
       });
     }
 
@@ -277,7 +279,7 @@ app.get('/api/user/:sessionId', async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error fetching user:', error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       error: 'Failed to fetch user data',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -309,7 +311,7 @@ app.post('/api/game', async (req: Request, res: Response) => {
 
     // Fetch all feissarit and randomly select one
     const feissaritSnapshot = await firestore.collection('feissarit').get();
-    
+
     if (feissaritSnapshot.empty) {
       return res.status(500).json({
         error: 'No feissarit available',
@@ -326,7 +328,8 @@ app.post('/api/game', async (req: Request, res: Response) => {
       userId: userId.trim(),
       createdAt: admin.firestore.FieldValue.serverTimestamp() as admin.firestore.Timestamp,
       currentFeissariId: randomFeissari.id,
-      isActive: true
+      isActive: true,
+      threatLevel: 0
     };
 
     await gameRef.set(gameData);
@@ -396,7 +399,8 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
     }
 
     const game = { id: gameDoc.id, ...gameDoc.data() } as Game;
-
+    const currentThreatLevel = typeof game.threatLevel === 'number' ? game.threatLevel : 0;
+    let newThreatLevel = currentThreatLevel;
     // Check if game is still active
     if (!game.isActive) {
       return res.status(410).json({
@@ -412,7 +416,7 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
 
     if (timeExpired) {
       await gameRef.update({ isActive: false });
-      
+
       // Get final balance
       const latestChatSnapshot = await firestore
         .collection('chatHistory')
@@ -422,28 +426,28 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
         .limit(1)
         .get();
 
-      const finalBalance = latestChatSnapshot.empty 
-        ? INITIAL_BALANCE 
+      const finalBalance = latestChatSnapshot.empty
+        ? INITIAL_BALANCE
         : latestChatSnapshot.docs[0].data().balanceAfter;
 
       console.log(`Time expired for game ${gameId}. Latest chat empty: ${latestChatSnapshot.empty}, finalBalance: ${finalBalance}`);
 
       // Calculate score and defeated feissari
-      const { score, defeatedFeissari } = await calculateGameScore(gameId, finalBalance);
-      
+      const { score, defeatedFeissari } = await calculateGameScore(gameId, finalBalance, currentThreatLevel);
+
       console.log(`Calculated score for game ${gameId}: defeatedFeissari=${defeatedFeissari}, finalBalance=${finalBalance}, score=${score}`);
 
       // Save to leaderboard
       try {
         const userDoc = await firestore.collection('users').doc(game.userId).get();
         const userName = userDoc.exists ? (userDoc.data()?.name || 'Anonymous') : 'Anonymous';
-        
+
         const existingEntrySnapshot = await firestore
           .collection('leaderboard')
           .where('gameId', '==', gameId)
           .limit(1)
           .get();
-        
+
         if (existingEntrySnapshot.empty) {
           const leaderboardRef = firestore.collection('leaderboard').doc();
           const leaderboardData = {
@@ -455,7 +459,7 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
             finalBalance: finalBalance,
             createdAt: admin.firestore.FieldValue.serverTimestamp()
           };
-          
+
           console.log(`About to save leaderboard entry:`, leaderboardData);
           await leaderboardRef.set(leaderboardData);
           console.log(`Leaderboard entry created for game ${gameId}: score=${score}, defeatedFeissari=${defeatedFeissari}, finalBalance=${finalBalance}`);
@@ -474,7 +478,9 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
         gameOver: true,
         feissariName: '',
         score: score,
-        defeatedFeissari: defeatedFeissari
+        defeatedFeissari: defeatedFeissari,
+        quickActions: [],
+        threatLevel: currentThreatLevel
       };
 
       return res.status(200).json(response);
@@ -496,21 +502,21 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
     // Check if balance is depleted
     if (currentBalance <= 0) {
       await gameRef.update({ isActive: false });
-      
+
       // Calculate score and defeated feissari
-      const { score, defeatedFeissari } = await calculateGameScore(gameId, 0);
+      const { score, defeatedFeissari } = await calculateGameScore(gameId, 0, currentThreatLevel);
 
       // Save to leaderboard
       try {
         const userDoc = await firestore.collection('users').doc(game.userId).get();
         const userName = userDoc.exists ? (userDoc.data()?.name || 'Anonymous') : 'Anonymous';
-        
+
         const existingEntrySnapshot = await firestore
           .collection('leaderboard')
           .where('gameId', '==', gameId)
           .limit(1)
           .get();
-        
+
         if (existingEntrySnapshot.empty) {
           const leaderboardRef = firestore.collection('leaderboard').doc();
           const leaderboardData = {
@@ -522,7 +528,7 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
             finalBalance: 0,
             createdAt: admin.firestore.FieldValue.serverTimestamp()
           };
-          
+
           await leaderboardRef.set(leaderboardData);
           console.log(`Leaderboard entry created for game ${gameId}: score=${score}, defeatedFeissari=${defeatedFeissari}, finalBalance=0`);
         } else {
@@ -540,7 +546,9 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
         gameOver: true,
         feissariName: '',
         score: score,
-        defeatedFeissari: defeatedFeissari
+        defeatedFeissari: defeatedFeissari,
+        quickActions: [],
+        threatLevel: currentThreatLevel
       };
 
       return res.status(200).json(response);
@@ -548,7 +556,7 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
 
     // Get current feissari
     const feissariDoc = await firestore.collection('feissarit').doc(game.currentFeissariId).get();
-    
+
     if (!feissariDoc.exists) {
       return res.status(500).json({
         error: 'Current feissari not found',
@@ -602,12 +610,13 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
       ...doc.data()
     } as ChatHistory));
 
-    // Get LLM response
+    // Get LLM response (LLM is informed of current threat level)
     const llmResponse = await llmService.getResponse(
       feissari,
       currentBalance,
       chatHistory,
-      message
+      message,
+      currentThreatLevel
     );
 
     // Get emote assets
@@ -637,6 +646,30 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
 
     // Handle moving to next feissari
     if (llmResponse.goToNext) {
+      // If LLM requested an increase to threat level for this ended interaction, persist it
+      if (llmResponse.increaseThreatLevel) {
+        newThreatLevel = currentThreatLevel + 1;
+        await gameRef.update({ threatLevel: newThreatLevel });
+      }
+
+      // If threat level reached threshold, end game immediately
+      if (newThreatLevel >= MAX_THREAT_LEVEL) {
+        await gameRef.update({ isActive: false });
+
+        const response: UpdateGameResponse = {
+          message: 'Cops got called for too much violence',
+          balance: llmResponse.balance,
+          emoteAssets: emoteAssets,
+          goToNext: false,
+          gameOver: true,
+          feissariName: feissari.name,
+          quickActions: [],
+          threatLevel: newThreatLevel
+        };
+
+        return res.status(200).json(response);
+      }
+
       // Get all feissarit ordered by ID
       const allFeissaritSnapshot = await firestore
         .collection('feissarit')
@@ -646,7 +679,7 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
         .get();
 
       let nextFeissari;
-      
+
       if (allFeissaritSnapshot.empty) {
         // Wrap around to the first feissari
         const firstFeissariSnapshot = await firestore
@@ -654,7 +687,7 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
           .orderBy(admin.firestore.FieldPath.documentId())
           .limit(1)
           .get();
-        
+
         nextFeissari = firstFeissariSnapshot.docs[0];
       } else {
         nextFeissari = allFeissaritSnapshot.docs[0];
@@ -669,12 +702,12 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
     // Check if balance is now depleted or time expired
     const balanceDepletedNow = llmResponse.balance <= 0;
     const gameOver = balanceDepletedNow || timeExpired;
-    
-    console.log(`Game state: gameId=${gameId}, balanceDepletedNow=${balanceDepletedNow}, timeExpired=${timeExpired}, gameOver=${gameOver}`);
-    
+
+    console.log(`Game state: gameId=${gameId}, balanceDepletedNow=${balanceDepletedNow}, timeExpired=${timeExpired}, threatLevel=${newThreatLevel}, gameOver=${gameOver}`);
+
     // Always calculate defeated feissari count for live display
     const defeatedFeissari = await calculateDefeatedFeissari(gameId);
-    
+
     // Calculate score - if balance just depleted, use the balance from before this transaction
     let score: number | undefined;
     if (gameOver) {
@@ -688,23 +721,23 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
         console.log(`Game over (other reason): defeatedFeissari=${defeatedFeissari}, llmResponse.balance=${llmResponse.balance}, score=${score}`);
       }
     }
-    
+
     if (gameOver) {
       await gameRef.update({ isActive: false });
-      
+
       // Automatically save to leaderboard when game ends
       try {
         // Get user name
         const userDoc = await firestore.collection('users').doc(game.userId).get();
         const userName = userDoc.exists ? (userDoc.data()?.name || 'Anonymous') : 'Anonymous';
-        
+
         // Check if entry already exists for this game
         const existingEntrySnapshot = await firestore
           .collection('leaderboard')
           .where('gameId', '==', gameId)
           .limit(1)
           .get();
-        
+
         // Only create if doesn't exist
         if (existingEntrySnapshot.empty) {
           const leaderboardRef = firestore.collection('leaderboard').doc();
@@ -717,7 +750,7 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
             finalBalance: llmResponse.balance,
             createdAt: admin.firestore.FieldValue.serverTimestamp()
           };
-          
+
           await leaderboardRef.set(leaderboardData);
           console.log(`Leaderboard entry created for game ${gameId}: score=${score}, defeatedFeissari=${defeatedFeissari}, finalBalance=${llmResponse.balance}`);
         } else {
@@ -735,7 +768,9 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
       emoteAssets: emoteAssets, // Keep the old feissari's emote
       goToNext: llmResponse.goToNext,
       gameOver: gameOver,
-      feissariName: feissari.name, // Keep the old feissari's name
+      feissariName: feissari.name,
+      quickActions: llmResponse.quickActions || [],
+      threatLevel: newThreatLevel, // Keep the old feissari's name
       score: score,
       defeatedFeissari: defeatedFeissari,
     };
@@ -810,8 +845,12 @@ app.post('/api/leaderboard', async (req: Request, res: Response) => {
       ? INITIAL_BALANCE
       : latestChatSnapshot.docs[0].data().balanceAfter;
 
+    const currentThreatLevel = latestChatSnapshot.empty
+      ? 0
+      : game.threatLevel;
+
     // Calculate score and defeated feissari
-    const { score, defeatedFeissari } = await calculateGameScore(gameId, finalBalance);
+    const { score, defeatedFeissari } = await calculateGameScore(gameId, finalBalance, currentThreatLevel);
 
     // Check if entry already exists for this game
     const existingEntrySnapshot = await firestore
@@ -905,7 +944,7 @@ app.get('/api/leaderboard/top', async (req: Request, res: Response) => {
 
     if (userId && typeof userId === 'string') {
       const userInTop10 = entries.find(entry => entry.userId === userId);
-      
+
       if (userInTop10) {
         currentUserEntry = userInTop10;
       } else {
@@ -933,7 +972,7 @@ app.get('/api/leaderboard/top', async (req: Request, res: Response) => {
             .collection('leaderboard')
             .where('score', '>', data.score)
             .get();
-          
+
           currentUserRank = betterScoresSnapshot.size + 1;
         }
       }
@@ -997,7 +1036,7 @@ app.get('/api/leaderboard/recent', async (req: Request, res: Response) => {
 
     if (userId && typeof userId === 'string') {
       const userInRecent = entries.find(entry => entry.userId === userId);
-      
+
       if (userInRecent) {
         currentUserEntry = userInRecent;
       } else {
@@ -1012,7 +1051,7 @@ app.get('/api/leaderboard/recent', async (req: Request, res: Response) => {
         if (!userRecentScoreSnapshot.empty) {
           const data = userRecentScoreSnapshot.docs[0].data();
           const userCreatedAt = data.createdAt?.toDate?.() || new Date();
-          
+
           currentUserEntry = {
             userId: data.userId,
             userName: data.userName,
@@ -1027,7 +1066,7 @@ app.get('/api/leaderboard/recent', async (req: Request, res: Response) => {
             .collection('leaderboard')
             .where('createdAt', '>', admin.firestore.Timestamp.fromDate(userCreatedAt))
             .get();
-          
+
           currentUserPosition = moreRecentSnapshot.size + 1;
         }
       }
