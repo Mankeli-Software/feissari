@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import admin from 'firebase-admin';
 import cors from 'cors';
+import dotenv from 'dotenv';
 
 // Initialize Express app
 const app = express();
@@ -13,18 +14,49 @@ app.use(express.json());
 // Initialize Firebase Admin SDK
 // Note: In production, you should use a service account key file
 // For now, we'll initialize with default credentials
-let db: admin.database.Database | null = null;
+let firestore: admin.firestore.Firestore | null = null;
+// Load environment variables from .env if present
+dotenv.config();
 
 try {
-  if (process.env.FIREBASE_DATABASE_URL) {
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+
+  if (serviceAccountKey) {
+    // The key can be provided either as raw JSON string or base64-encoded JSON.
+    let serviceAccount: admin.ServiceAccount | undefined;
+
+    try {
+      // Try to parse as JSON directly
+      serviceAccount = JSON.parse(serviceAccountKey) as admin.ServiceAccount;
+    } catch (err) {
+      try {
+        // Fallback: treat as base64-encoded JSON
+        const decoded = Buffer.from(serviceAccountKey, 'base64').toString('utf8');
+        serviceAccount = JSON.parse(decoded) as admin.ServiceAccount;
+      } catch (err2) {
+        console.error('Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY as JSON or base64-encoded JSON');
+        throw err2 || err;
+      }
+    }
+
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+      // projectId will usually be inferred from the service account, but include if present
+      projectId: (serviceAccount as any)?.project_id || projectId
+    });
+    firestore = admin.firestore();
+    console.log('Firebase Admin SDK initialized using service account from FIREBASE_SERVICE_ACCOUNT_KEY (Firestore)');
+  } else if (projectId) {
+    // If only projectId is provided, fall back to application default credentials
     admin.initializeApp({
       credential: admin.credential.applicationDefault(),
-      databaseURL: process.env.FIREBASE_DATABASE_URL
+      projectId: projectId || undefined
     });
-    db = admin.database();
-    console.log('Firebase Admin SDK initialized successfully');
+    firestore = admin.firestore();
+    console.log('Firebase Admin SDK initialized using application default credentials (Firestore)');
   } else {
-    console.log('Firebase not configured - FIREBASE_DATABASE_URL not set');
+    console.log('Firebase not configured - FIREBASE_PROJECT_ID and/or FIREBASE_SERVICE_ACCOUNT_KEY not set');
     console.log('API endpoints will return errors without Firebase configuration');
   }
 } catch (error) {
@@ -60,18 +92,18 @@ app.post('/api/user', async (req: Request, res: Response) => {
       });
     }
 
-    if (!db) {
+    if (!firestore) {
       return res.status(503).json({
         error: 'Firebase not configured',
-        details: 'Set FIREBASE_DATABASE_URL environment variable'
+        details: 'Set FIREBASE_PROJECT_ID or FIREBASE_SERVICE_ACCOUNT_KEY environment variable'
       });
     }
 
-    // Save to Firebase Realtime Database
-    const userRef = db.ref(`users/${sessionId}`);
-    await userRef.set({
+    // Save to Firestore
+    const userDoc = firestore.collection('users').doc(sessionId);
+    await userDoc.set({
       name: name.trim(),
-      timestamp: admin.database.ServerValue.TIMESTAMP
+      timestamp: admin.firestore.FieldValue.serverTimestamp()
     });
 
     return res.status(201).json({
@@ -104,25 +136,24 @@ app.get('/api/user/:sessionId', async (req: Request, res: Response) => {
       });
     }
 
-    if (!db) {
+    if (!firestore) {
       return res.status(503).json({
         error: 'Firebase not configured',
-        details: 'Set FIREBASE_DATABASE_URL environment variable'
+        details: 'Set FIREBASE_PROJECT_ID or FIREBASE_SERVICE_ACCOUNT_KEY environment variable'
       });
     }
 
-    // Fetch from Firebase Realtime Database
-    const userRef = db.ref(`users/${sessionId}`);
-    const snapshot = await userRef.get();
+    // Fetch from Firestore
+    const userDoc = await firestore.collection('users').doc(sessionId).get();
 
-    if (!snapshot.exists()) {
+    if (!userDoc.exists) {
       return res.status(404).json({ 
         error: 'User not found',
         sessionId 
       });
     }
 
-    const userData = snapshot.val();
+    const userData = userDoc.data() || {};
     return res.status(200).json({
       sessionId,
       name: userData.name,
