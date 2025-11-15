@@ -383,6 +383,35 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
       // Calculate score and defeated feissari
       const { score, defeatedFeissari } = await calculateGameScore(gameId, finalBalance);
 
+      // Save to leaderboard
+      try {
+        const userDoc = await firestore.collection('users').doc(game.userId).get();
+        const userName = userDoc.exists ? (userDoc.data()?.name || 'Anonymous') : 'Anonymous';
+        
+        const existingEntrySnapshot = await firestore
+          .collection('leaderboard')
+          .where('gameId', '==', gameId)
+          .limit(1)
+          .get();
+        
+        if (existingEntrySnapshot.empty) {
+          const leaderboardRef = firestore.collection('leaderboard').doc();
+          const leaderboardData = {
+            userId: game.userId,
+            userName: userName,
+            gameId: gameId,
+            score: score,
+            defeatedFeissari: defeatedFeissari,
+            finalBalance: finalBalance,
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+          };
+          
+          await leaderboardRef.set(leaderboardData);
+        }
+      } catch (leaderboardError) {
+        console.error('Error saving to leaderboard:', leaderboardError);
+      }
+
       const response: UpdateGameResponse = {
         message: 'Aika loppui! Peli päättyi.',
         balance: finalBalance,
@@ -416,6 +445,35 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
       
       // Calculate score and defeated feissari
       const { score, defeatedFeissari } = await calculateGameScore(gameId, 0);
+
+      // Save to leaderboard
+      try {
+        const userDoc = await firestore.collection('users').doc(game.userId).get();
+        const userName = userDoc.exists ? (userDoc.data()?.name || 'Anonymous') : 'Anonymous';
+        
+        const existingEntrySnapshot = await firestore
+          .collection('leaderboard')
+          .where('gameId', '==', gameId)
+          .limit(1)
+          .get();
+        
+        if (existingEntrySnapshot.empty) {
+          const leaderboardRef = firestore.collection('leaderboard').doc();
+          const leaderboardData = {
+            userId: game.userId,
+            userName: userName,
+            gameId: gameId,
+            score: score,
+            defeatedFeissari: defeatedFeissari,
+            finalBalance: 0,
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+          };
+          
+          await leaderboardRef.set(leaderboardData);
+        }
+      } catch (leaderboardError) {
+        console.error('Error saving to leaderboard:', leaderboardError);
+      }
 
       const response: UpdateGameResponse = {
         message: 'Rahasi loppuivat! Peli päättyi.',
@@ -569,14 +627,24 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
       }
     }
 
-    // Check if balance is now depleted
-    const gameOver = llmResponse.balance <= 0 || timeExpired;
+    // Check if balance is now depleted or time expired
+    const balanceDepletedNow = llmResponse.balance <= 0;
+    const gameOver = balanceDepletedNow || timeExpired;
     
     // Always calculate defeated feissari count for live display
     const defeatedFeissari = await calculateDefeatedFeissari(gameId);
     
-    // Calculate score if game is over
-    const score = gameOver ? defeatedFeissari * llmResponse.balance : undefined;
+    // Calculate score - if balance just depleted, use the balance from before this transaction
+    let score: number | undefined;
+    if (gameOver) {
+      if (balanceDepletedNow) {
+        // Balance just became 0, use the balance from BEFORE this transaction
+        score = defeatedFeissari * currentBalance;
+      } else {
+        // Game ended for other reasons (shouldn't happen as timeExpired returns early)
+        score = defeatedFeissari * llmResponse.balance;
+      }
+    }
     
     if (gameOver) {
       await gameRef.update({ isActive: false });

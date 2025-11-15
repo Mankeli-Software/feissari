@@ -42,6 +42,9 @@ export default function LeaderboardScreen({
       }
 
       try {
+        // Small delay to ensure Firestore serverTimestamp is written
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
         // Fetch leaderboards (backend automatically saves scores when game ends)
         const [topResponse, recentResponse, statsResponse] = await Promise.all([
           fetch(`${BACKEND_URL}/api/leaderboard/top?userId=${sessionId}`),
