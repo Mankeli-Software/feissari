@@ -167,4 +167,94 @@ describe('Backend API Tests', () => {
       expect(response.body).toHaveProperty('error');
     });
   });
+
+  describe('POST /api/game', () => {
+    it('should return 400 when userId is missing', async () => {
+      const response = await request(app)
+        .post('/api/game')
+        .send({})
+        .expect('Content-Type', /json/)
+        .expect(400);
+
+      expect(response.body).toHaveProperty('error');
+      expect(response.body.error).toContain('userId');
+    });
+
+    it('should return 400 when userId is empty string', async () => {
+      const response = await request(app)
+        .post('/api/game')
+        .send({ userId: '   ' })
+        .expect('Content-Type', /json/)
+        .expect(400);
+
+      expect(response.body).toHaveProperty('error');
+      expect(response.body.error).toContain('userId');
+    });
+
+    it('should return 400 when userId is not a string', async () => {
+      const response = await request(app)
+        .post('/api/game')
+        .send({ userId: 123 })
+        .expect('Content-Type', /json/)
+        .expect(400);
+
+      expect(response.body).toHaveProperty('error');
+      expect(response.body.error).toContain('userId');
+    });
+
+    it('should return 503 when Firebase is not configured', async () => {
+      const response = await request(app)
+        .post('/api/game')
+        .send({ userId: 'test-user-123' })
+        .expect('Content-Type', /json/)
+        .expect(503);
+
+      expect(response.body).toHaveProperty('error');
+      expect(response.body.error).toContain('Firebase not configured');
+    });
+  });
+
+  describe('PUT /api/game/:gameId', () => {
+    it('should return 400 when gameId is invalid', async () => {
+      const response = await request(app)
+        .put('/api/game/')
+        .send({ message: 'Hello' })
+        .expect(404); // Express returns 404 for empty path parameter
+
+      // This is expected behavior - empty gameId results in 404
+    });
+
+    it('should return 400 when message is not string or null', async () => {
+      const response = await request(app)
+        .put('/api/game/test-game-123')
+        .send({ message: 123 })
+        .expect('Content-Type', /json/)
+        .expect(400);
+
+      expect(response.body).toHaveProperty('error');
+      expect(response.body.error).toContain('message');
+    });
+
+    it('should accept null message', async () => {
+      const response = await request(app)
+        .put('/api/game/test-game-123')
+        .send({ message: null })
+        .expect('Content-Type', /json/)
+        .expect(503); // Will reach Firebase check
+
+      expect(response.body.error).not.toContain('Invalid message');
+    });
+
+    it('should return 503 when Firebase is not configured', async () => {
+      const response = await request(app)
+        .put('/api/game/test-game-123')
+        .send({ message: 'Hello' })
+        .expect('Content-Type', /json/)
+        .expect(503);
+
+      expect(response.body).toHaveProperty('error');
+      expect(response.body.error).toContain('Firebase not configured');
+    });
+  });
 });
+

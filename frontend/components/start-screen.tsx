@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import Cookies from "js-cookie"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import GameScreen from "@/components/game-screen"
 
 const COOKIE_NAME = "feissari_session"
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001"
@@ -125,25 +126,7 @@ export default function StartScreen() {
   }
 
   if (isStarted) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-emerald-50 to-green-100 dark:from-gray-900 dark:to-emerald-950">
-        <div className="flex flex-col items-center gap-8 text-center">
-          <h1 className="text-6xl font-bold text-emerald-800 dark:text-emerald-400">
-            Welcome, {playerName}!
-          </h1>
-          <p className="text-2xl text-emerald-700 dark:text-emerald-300">
-            The game is loading...
-          </p>
-          <Button 
-            onClick={handleReset}
-            variant="outline"
-            className="mt-4"
-          >
-            Reset Session (For Testing)
-          </Button>
-        </div>
-      </div>
-    )
+    return <GameScreen />;
   }
 
   return (

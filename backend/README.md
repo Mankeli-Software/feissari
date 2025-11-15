@@ -1,19 +1,21 @@
 # Feissari Backend
 
-A basic Express.js backend service for the Feissari game with Firebase integration.
+A backend service for the Feissari game - a Finnish face-to-face salesperson simulator powered by Google Gemini AI.
 
 ## Features
 
 - Express.js server with TypeScript
-- Firebase Realtime Database integration
-- CORS enabled for frontend communication
-- RESTful API endpoints for user management
+- Firebase Firestore for data persistence
+- Google Gemini AI integration for dynamic conversations
+- RESTful API endpoints for game and user management
+- Comprehensive test suite with Vitest
 
 ## Prerequisites
 
 - Node.js (v14 or higher)
-- Firebase project with Realtime Database enabled
-- Firebase service account credentials (for production)
+- Firebase project with Firestore enabled
+- Firebase service account credentials
+- Google Gemini API key
 
 ## Installation
 
@@ -38,20 +40,36 @@ Run tests with coverage:
 npm test:coverage
 ```
 
-The test suite includes:
-- Health check endpoint validation
-- User creation with input validation
-- User retrieval by session ID
-- Error handling and edge cases
-- 15 comprehensive unit tests
+The test suite includes comprehensive validation for all endpoints.
 
 ## Configuration
 
-Set the following environment variables:
+Copy `.env.example` to `.env` and configure:
 
-- `PORT` - Server port (default: 3001)
-- `FIREBASE_DATABASE_URL` - Firebase Realtime Database URL
-- Firebase credentials should be configured via Application Default Credentials or service account key
+```bash
+# Firebase Configuration
+FIREBASE_PROJECT_ID=your-project-id
+FIREBASE_SERVICE_ACCOUNT_KEY=your-service-account-key-json-or-base64
+
+# Google Gemini API
+GEMINI_API_KEY=your-gemini-api-key
+LLM_MODEL=gemini-2.0-flash-exp
+
+# Server
+PORT=3001
+NODE_ENV=development
+```
+
+## Database Setup
+
+1. Set up Firebase and Gemini API credentials in `.env`
+2. Seed the database with feissari characters:
+
+```bash
+npm run seed
+```
+
+This will populate the Firestore database with 5 unique feissari characters.
 
 ## Running the Server
 
@@ -74,7 +92,9 @@ GET /health
 ```
 Returns server health status.
 
-### Save User
+### User Management
+
+#### Save User
 ```
 POST /api/user
 Content-Type: application/json
@@ -84,39 +104,65 @@ Content-Type: application/json
   "sessionId": "unique-session-id"
 }
 ```
-Saves a user's name associated with their session ID to Firebase.
+Saves a user's name associated with their session ID to Firestore.
 
-**Response (201):**
-```json
-{
-  "message": "User saved successfully",
-  "sessionId": "unique-session-id",
-  "name": "John Doe"
-}
-```
-
-### Get User
+#### Get User
 ```
 GET /api/user/:sessionId
 ```
 Retrieves a user's name by their session ID.
 
-**Response (200):**
+### Game Endpoints
+
+#### Create Game
+```
+POST /api/game
+Content-Type: application/json
+
+{
+  "userId": "session-id"
+}
+```
+Creates a new game session and randomly assigns a feissari character.
+
+**Response (201):**
 ```json
 {
-  "sessionId": "unique-session-id",
-  "name": "John Doe",
-  "timestamp": 1699999999999
+  "gameId": "unique-game-id",
+  "createdAt": "2025-11-15T10:00:00.000Z",
+  "initialBalance": 100
 }
 ```
 
-**Response (404):**
-```json
+#### Update Game (Send Message)
+```
+PUT /api/game/:gameId
+Content-Type: application/json
+
 {
-  "error": "User not found",
-  "sessionId": "unknown-session-id"
+  "message": "No thanks, I'm not interested" or null
 }
 ```
+Sends a message in the game (or null to start the conversation) and receives AI response.
+
+**Response (200):**
+```json
+{
+  "message": "AI character response",
+  "balance": 100,
+  "emoteAssets": ["excited-1.svg", "excited-2.svg"],
+  "goToNext": false,
+  "gameOver": false,
+  "feissariName": "Matti Myyjä"
+}
+```
+
+## Game Rules
+
+- **Starting Balance**: €100
+- **Time Limit**: 3 minutes
+- **Objective**: Survive without losing all your money
+- **Gameplay**: Resist AI salespeople's pitches through conversation
 
 ## Error Handling
 
@@ -125,6 +171,8 @@ The API returns appropriate HTTP status codes:
 - `201` - Created
 - `400` - Bad Request (invalid input)
 - `404` - Not Found
+- `410` - Gone (game time expired)
+- `503` - Service Unavailable (Firebase/LLM not configured)
 - `500` - Internal Server Error
 
 Error responses include descriptive messages:
@@ -134,3 +182,14 @@ Error responses include descriptive messages:
   "details": "Additional error details"
 }
 ```
+
+## Architecture
+
+### Database Schema
+
+- `/games/{game-id}` - Game sessions
+- `/chatHistory/{game-id}/chats/{chat-id}` - Chat messages (subcollection)
+- `/feissarit/{feissari-id}` - Salesperson characters
+- `/users/{session-id}` - User profiles
+
+See `requirements.md` for detailed schema documentation.

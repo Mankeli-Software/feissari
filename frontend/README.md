@@ -32,6 +32,46 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Testing
+
+The frontend includes comprehensive tests using Vitest and React Testing Library.
+
+```bash
+# Run all tests once
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with UI
+npm run test:ui
+
+# Generate coverage report
+npm run test:coverage
+```
+
+See [TEST_README.md](./TEST_README.md) for detailed testing documentation.
+
+## Project Structure
+
+```
+frontend/
+├── app/                    # Next.js app directory
+│   ├── page.tsx           # Main page component
+│   ├── layout.tsx         # Root layout with providers
+│   └── globals.css        # Global styles
+├── components/            # React components
+│   ├── game-screen.tsx   # Main game interface
+│   ├── start-screen.tsx  # Game start screen
+│   └── ui/               # UI components (shadcn)
+├── contexts/             # React contexts
+│   └── game-context.tsx  # Game state management
+├── lib/                  # Utility functions
+│   └── utils.ts         # General utilities
+└── __tests__/           # Test files
+    └── utils.test.ts    # Utility tests
+```
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
