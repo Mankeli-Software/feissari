@@ -407,9 +407,12 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
           };
           
           await leaderboardRef.set(leaderboardData);
+          console.log(`Leaderboard entry created for game ${gameId}: score=${score}, defeatedFeissari=${defeatedFeissari}, finalBalance=${finalBalance}`);
+        } else {
+          console.log(`Leaderboard entry already exists for game ${gameId}`);
         }
       } catch (leaderboardError) {
-        console.error('Error saving to leaderboard:', leaderboardError);
+        console.error('Error saving to leaderboard (time expired):', leaderboardError);
       }
 
       const response: UpdateGameResponse = {
@@ -470,9 +473,12 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
           };
           
           await leaderboardRef.set(leaderboardData);
+          console.log(`Leaderboard entry created for game ${gameId}: score=${score}, defeatedFeissari=${defeatedFeissari}, finalBalance=0`);
+        } else {
+          console.log(`Leaderboard entry already exists for game ${gameId}`);
         }
       } catch (leaderboardError) {
-        console.error('Error saving to leaderboard:', leaderboardError);
+        console.error('Error saving to leaderboard (balance depleted):', leaderboardError);
       }
 
       const response: UpdateGameResponse = {
@@ -695,10 +701,13 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
           };
           
           await leaderboardRef.set(leaderboardData);
+          console.log(`Leaderboard entry created for game ${gameId}: score=${score}, defeatedFeissari=${defeatedFeissari}, finalBalance=${llmResponse.balance}`);
+        } else {
+          console.log(`Leaderboard entry already exists for game ${gameId}`);
         }
       } catch (leaderboardError) {
         // Log error but don't fail the game update
-        console.error('Error saving to leaderboard:', leaderboardError);
+        console.error('Error saving to leaderboard (main flow):', leaderboardError);
       }
     }
 
