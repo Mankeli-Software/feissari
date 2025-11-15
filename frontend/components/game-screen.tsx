@@ -48,7 +48,7 @@ function VideoBackground({
     const lastAiGoToNext = !!lastAi?.goToNext;
 
     // If the last AI message changed, react according to rules
-    if (lastAiName !== prevLastAiName.current) {
+    if (lastAiName !== prevLastAiName.current || lastAiGoToNext) {
       // Clear any pending pause timers
       if (pauseTimerRef.current) {
         clearTimeout(pauseTimerRef.current);
