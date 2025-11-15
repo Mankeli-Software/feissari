@@ -30,7 +30,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const [startTime, setStartTime] = useState<number | null>(null);
 
-  // Timer effect
+  // Timer effect - counts down and marks game inactive when time expires
+  // The backend automatically saves to leaderboard when it receives any API call
+  // after the time has expired, so no need to make a separate API call here
   useEffect(() => {
     if (!gameState.isActive || !startTime) return;
 
@@ -48,65 +50,21 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       if (remaining <= 0 && !timeExpiredHandled) {
         timeExpiredHandled = true;
         clearInterval(interval); // Stop the timer immediately
-        // Time expired - call backend to finalize game and get final score
-        if (gameState.gameId) {
-          handleTimeExpired(gameState.gameId);
-        }
+        // Mark game as inactive and calculate final score
+        // The leaderboard save is handled by the backend automatically
+        setGameState(prev => {
+          const finalScore = (prev.defeatedFeissari || 0) * prev.balance;
+          return {
+            ...prev,
+            isActive: false,
+            score: finalScore,
+          };
+        });
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [gameState.isActive, startTime, gameState.gameId]);
-
-  const handleTimeExpired = async (gameId: string) => {
-    try {
-      console.log('Time expired, calling backend to finalize game...');
-      // Send a request to backend to finalize the game
-      const response = await fetch(`${BACKEND_URL}/api/game/${gameId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ message: null }),
-      });
-
-      if (response.status === 410) {
-        // Game already ended - the score should already be in state from the last update
-        console.log('Game already ended (410), using score from state:', gameState.score);
-        setGameState(prev => ({
-          ...prev,
-          isActive: false,
-        }));
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error(`Failed to finalize game: ${response.status}`);
-      }
-
-      const data: UpdateGameResponse = await response.json();
-      console.log('Game finalized by backend:', { score: data.score, defeatedFeissari: data.defeatedFeissari, balance: data.balance });
-      
-      // Update game state with final score from backend
-      setGameState(prev => ({
-        ...prev,
-        isActive: false,
-        score: data.score,
-        defeatedFeissari: data.defeatedFeissari,
-        balance: data.balance,
-      }));
-    } catch (error) {
-      console.error('Error finalizing game:', error);
-      // Fallback: calculate score locally and mark game as inactive
-      const calculatedScore = (gameState.defeatedFeissari || 0) * gameState.balance;
-      console.log('Fallback: marking game inactive with calculated score:', calculatedScore);
-      setGameState(prev => ({
-        ...prev,
-        isActive: false,
-        score: calculatedScore,
-      }));
-    }
-  };
+  }, [gameState.isActive, startTime]);
 
   const startGame = useCallback(async () => {
     const sessionId = Cookies.get('feissari_session');
@@ -140,7 +98,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         timeRemaining: GAME_DURATION_MS / 1000,
         isActive: true,
         messages: [],
-        isLoading: false,
+        isLoading: true,
       }));
 
       setStartTime(Date.now());
@@ -187,6 +145,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         isActive: !data.gameOver,
         score: data.score,
         defeatedFeissari: data.defeatedFeissari,
+        isLoading: false,
       }));
     } catch (error) {
       console.error('Error getting initial message:', error);

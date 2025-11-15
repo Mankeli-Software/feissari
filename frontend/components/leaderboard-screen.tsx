@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import Cookies from 'js-cookie';
 import {
@@ -12,11 +13,11 @@ import {
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
 
 interface LeaderboardScreenProps {
-  gameId: string;
-  score: number;
-  defeatedFeissari: number;
-  finalBalance: number;
-  onNewGame: () => void;
+  gameId?: string;
+  score?: number;
+  defeatedFeissari?: number;
+  finalBalance?: number;
+  onNewGame?: () => void;
 }
 
 export default function LeaderboardScreen({
@@ -40,28 +41,21 @@ export default function LeaderboardScreen({
         setIsLoading(false);
         return;
       }
-
       try {
-        // Small delay to ensure Firestore serverTimestamp is written
         await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Fetch leaderboards (backend automatically saves scores when game ends)
         const [topResponse, recentResponse, statsResponse] = await Promise.all([
           fetch(`${BACKEND_URL}/api/leaderboard/top?userId=${sessionId}`),
           fetch(`${BACKEND_URL}/api/leaderboard/recent?userId=${sessionId}`),
           fetch(`${BACKEND_URL}/api/leaderboard/stats`)
         ]);
-
         if (topResponse.ok) {
           const topData = await topResponse.json();
           setTopLeaderboard(topData);
         }
-
         if (recentResponse.ok) {
           const recentData = await recentResponse.json();
           setRecentLeaderboard(recentData);
         }
-
         if (statsResponse.ok) {
           const statsData = await statsResponse.json();
           setStats(statsData);
@@ -73,7 +67,6 @@ export default function LeaderboardScreen({
         setIsLoading(false);
       }
     };
-
     fetchLeaderboard();
   }, [gameId]);
 
@@ -82,26 +75,28 @@ export default function LeaderboardScreen({
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-emerald-50 to-green-100 dark:from-gray-900 dark:to-emerald-950 p-4">
       <div className="w-full max-w-4xl space-y-6">
-        {/* Header with score */}
-        <div className="rounded-lg bg-white p-8 shadow-2xl dark:bg-gray-800">
-          <h1 className="text-5xl font-bold text-emerald-800 dark:text-emerald-400 mb-4 text-center">
-            🏆 Game Over!
-          </h1>
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Score</p>
-              <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{score}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Feissari Defeated</p>
-              <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{defeatedFeissari}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Final Balance</p>
-              <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">€{finalBalance}</p>
+        {/* Header with score (only if previous game exists) */}
+        {(score !== undefined && defeatedFeissari !== undefined && finalBalance !== undefined) && (
+          <div className="rounded-lg bg-white p-8 shadow-2xl dark:bg-gray-800">
+            <h1 className="text-5xl font-bold text-emerald-800 dark:text-emerald-400 mb-4 text-center">
+              🏆 Your Last Game!
+            </h1>
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Score</p>
+                <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{score}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Feissari Defeated</p>
+                <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{defeatedFeissari}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Final Balance</p>
+                <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">€{finalBalance}</p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Loading state */}
         {isLoading && (
@@ -261,15 +256,32 @@ export default function LeaderboardScreen({
 
         {/* New Game Button */}
         <div className="flex justify-center">
-          <Button
-            onClick={onNewGame}
-            className="w-full max-w-md h-14 text-lg font-semibold bg-emerald-600 hover:bg-emerald-700"
-            size="lg"
-          >
-            🎮 Play New Game
-          </Button>
+          <NewGameButton onNewGame={onNewGame} />
         </div>
       </div>
     </div>
+  );
+}
+
+function NewGameButton({ onNewGame }: { onNewGame?: () => void }) {
+  const router = useRouter();
+
+  const handle = () => {
+    if (onNewGame) {
+      onNewGame();
+    } else {
+      // Default behaviour: go to start page
+      router.push('/');
+    }
+  };
+
+  return (
+    <Button
+      onClick={handle}
+      className="w-full max-w-md h-14 text-lg font-semibold bg-emerald-600 hover:bg-emerald-700"
+      size="lg"
+    >
+      🎮 Play New Game
+    </Button>
   );
 }

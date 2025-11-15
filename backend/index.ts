@@ -135,6 +135,51 @@ async function calculateGameScore(gameId: string, finalBalance: number): Promise
   return { score: score || 0, defeatedFeissari: defeatedFeissari || 0 };
 }
 
+/**
+ * GET /api/leaderboard/last-game
+ * Get the latest game statistics for the current user
+ * Query params: userId (required) - session ID of the user
+ * Returns: { gameId, score, defeatedFeissari, finalBalance, createdAt }
+ */
+app.get('/api/leaderboard/last-game', async (req: Request, res: Response) => {
+  try {
+    const userId = req.query.userId || req.headers['x-user-id'];
+    if (!userId || typeof userId !== 'string') {
+      return res.status(400).json({ error: 'Missing or invalid userId (sessionId) in query or header' });
+    }
+    if (!firestore) {
+      return res.status(503).json({
+        error: 'Firebase not configured',
+        details: 'Set FIREBASE_PROJECT_ID or FIREBASE_SERVICE_ACCOUNT_KEY environment variable'
+      });
+    }
+    // Get the most recent leaderboard entry for this user
+    const snapshot = await firestore
+      .collection('leaderboard')
+      .where('userId', '==', userId)
+      .orderBy('createdAt', 'desc')
+      .limit(1)
+      .get();
+    if (snapshot.empty) {
+      return res.status(404).json({ error: 'No game stats found for user' });
+    }
+    const data = snapshot.docs[0].data();
+    return res.status(200).json({
+      gameId: data.gameId,
+      score: data.score,
+      defeatedFeissari: data.defeatedFeissari,
+      finalBalance: data.finalBalance,
+      createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error fetching last game stats:', error);
+    return res.status(500).json({
+      error: 'Failed to fetch last game stats',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 // Interface for user data
 interface UserData {
   name: string;

@@ -1,15 +1,18 @@
 "use client"
 
 import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation'
 import { useGame, EmoteImage } from '@/lib/game-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import LeaderboardScreen from '@/components/leaderboard-screen';
+import Cookies from 'js-cookie';
+
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
 
 export default function GameScreen() {
   const { gameState, startGame, sendMessage, resetGame } = useGame();
+  const router = useRouter()
   const [inputMessage, setInputMessage] = useState('');
-  const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [prevScore, setPrevScore] = useState<number>(0);
   const [animatingScore, setAnimatingScore] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -17,6 +20,14 @@ export default function GameScreen() {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+
+  // If no session cookie present, redirect to start screen so user can create/join a session
+  useEffect(() => {
+    const sessionId = Cookies.get('feissari_session');
+    if (!sessionId) {
+      router.replace('/');
+    }
+  }, [router]);
 
   useEffect(() => {
     scrollToBottom();
@@ -35,15 +46,29 @@ export default function GameScreen() {
     }
   }, [currentScore, prevScore, gameState.isActive]);
 
-  // Auto-show leaderboard after 2 seconds when game is over
+  // Save game to leaderboard and redirect after a short delay when game ends
   useEffect(() => {
-    if (!gameState.isActive && gameState.messages.length > 0 && !showLeaderboard) {
-      const timer = setTimeout(() => {
-        setShowLeaderboard(true);
-      }, 2000);
-      return () => clearTimeout(timer);
+    if (!gameState.isActive && gameState.messages.length > 0 && gameState.gameId) {
+      // Immediately start saving in background and redirect right away.
+      (async () => {
+        try {
+          await fetch(`${BACKEND_URL}/api/leaderboard`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ gameId: gameState.gameId }),
+          });
+        } catch (error) {
+          // Log but do not block redirect
+          console.error('Error saving game to leaderboard:', error);
+        }
+      })();
+
+      // Redirect immediately to leaderboard. We don't await the save above.
+      router.push('/leaderboard');
     }
-  }, [gameState.isActive, gameState.messages.length, showLeaderboard]);
+  }, [gameState.isActive, gameState.messages.length, gameState.gameId, gameState.score, gameState.defeatedFeissari, gameState.balance, router]);
 
   const handleSendMessage = () => {
     if (inputMessage.trim() && !gameState.isLoading) {
@@ -94,65 +119,15 @@ export default function GameScreen() {
     );
   }
 
-  // Game over screen - show leaderboard
+  // Game over: we redirect immediately to leaderboard. Show a minimal redirecting indicator
   if (!gameState.isActive && gameState.messages.length > 0) {
-    if (showLeaderboard && gameState.gameId) {
-      return (
-        <LeaderboardScreen
-          gameId={gameState.gameId}
-          score={gameState.score ?? 0}
-          defeatedFeissari={gameState.defeatedFeissari ?? 0}
-          finalBalance={gameState.balance}
-          onNewGame={() => {
-            setShowLeaderboard(false);
-            resetGame();
-          }}
-        />
-      );
-    }
-
-    // Show transition screen before leaderboard
-    const survived = gameState.balance > 0;
-
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-emerald-50 to-green-100 dark:from-gray-900 dark:to-emerald-950">
-        <div className="w-full max-w-md space-y-8 rounded-lg bg-white p-10 shadow-2xl dark:bg-gray-800">
-          <div className="text-center">
-            <h1 className={`text-5xl font-bold mb-4 ${
-              survived 
-                ? 'text-emerald-600 dark:text-emerald-400' 
-                : 'text-red-600 dark:text-red-400'
-            }`}>
-              {survived ? '🎉 You Survived!' : '💸 Game Over'}
-            </h1>
-            <div className="space-y-4 text-lg">
-              <p className="text-gray-700 dark:text-gray-300">
-                Final Balance: <span className="font-bold text-2xl">€{gameState.balance}</span>
-              </p>
-              <p className="text-gray-700 dark:text-gray-300">
-                Feissari Defeated: <span className="font-bold text-2xl">{gameState.defeatedFeissari || 0}</span>
-              </p>
-              <p className="text-gray-700 dark:text-gray-300">
-                Final Score: <span className="font-bold text-2xl">{gameState.score || 0}</span>
-              </p>
-              <p className="text-gray-600 dark:text-gray-400">
-                {survived 
-                  ? 'You successfully resisted the feissarit!' 
-                  : 'The feissarit got all your money!'}
-              </p>
-              <p className="text-sm text-gray-500 dark:text-gray-500 animate-pulse">
-                Loading leaderboard...
-              </p>
-            </div>
+        <div className="w-full max-w-sm space-y-4 rounded-lg bg-white p-8 shadow-2xl dark:bg-gray-800 text-center">
+          <p className="text-lg text-gray-700 dark:text-gray-300">Saving your result and redirecting to leaderboard...</p>
+          <div className="flex justify-center mt-4">
+            <div className="w-6 h-6 border-4 border-emerald-600 border-dashed rounded-full animate-spin"></div>
           </div>
-          
-          <Button
-            onClick={() => setShowLeaderboard(true)}
-            className="w-full h-14 text-lg font-semibold bg-emerald-600 hover:bg-emerald-700"
-            size="lg"
-          >
-            View Leaderboard
-          </Button>
         </div>
       </div>
     );
