@@ -35,6 +35,16 @@ export default function GameScreen() {
     }
   }, [currentScore, prevScore, gameState.isActive]);
 
+  // Auto-show leaderboard after 2 seconds when game is over
+  useEffect(() => {
+    if (!gameState.isActive && gameState.messages.length > 0 && !showLeaderboard) {
+      const timer = setTimeout(() => {
+        setShowLeaderboard(true);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [gameState.isActive, gameState.messages.length, showLeaderboard]);
+
   const handleSendMessage = () => {
     if (inputMessage.trim() && !gameState.isLoading) {
       sendMessage(inputMessage);
@@ -103,14 +113,6 @@ export default function GameScreen() {
 
     // Show transition screen before leaderboard
     const survived = gameState.balance > 0;
-    
-    // Auto-show leaderboard after 2 seconds
-    useEffect(() => {
-      const timer = setTimeout(() => {
-        setShowLeaderboard(true);
-      }, 2000);
-      return () => clearTimeout(timer);
-    }, []);
 
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-emerald-50 to-green-100 dark:from-gray-900 dark:to-emerald-950">
