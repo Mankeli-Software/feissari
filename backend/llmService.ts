@@ -79,7 +79,7 @@ RULES:
 3. Only deduct from balance if you successfully convince the customer to make a purchase
 4. Set "goToNext" to true when the conversation should end (sale made or you give up). So if you deduct balance from the user, you should mark the interaction as completed.
 5. Keep your message conversational and in character
-6. Provide a "quickActions" array containing exactly 3 short, physical actions (each 2-4 words) that are appropriate responses to your message. 1 should be negative or violent, 1 should be neutral and 1 should be positive. Examples: ["Punch", "Run away", "Do a backflip", "Bow", "Handshake"]${historyText}${currentMessageText}
+6. Provide a "quickActions" array containing exactly 3 short, physical actions (each 2-4 words) that nudge the player to the right direction without revealing character weaknesses directly. 1 should be negative or violent, 1 should be neutral and 1 should be positive. Examples: ["Punch", "Run away", "Do a backflip", "Bow", "Handshake"]${historyText}${currentMessageText}
 7. Include a boolean "increaseThreatLevel" field set to true when this interaction should instruct the backend to increase the stored threat level. Backend is authoritative and will persist the increment only when appropriate.
 
 Respond with JSON only:`;
