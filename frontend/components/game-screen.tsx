@@ -94,6 +94,8 @@ export default function GameScreen() {
   const prevFeissariRef = useRef<string | null>(null);
   const [emoteVisible, setEmoteVisible] = useState(false);
   const [showFeissariBubble, setShowFeissariBubble] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const prevIsLoadingRef = useRef<boolean>(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -171,10 +173,34 @@ export default function GameScreen() {
     }
   }, [gameState.isActive, gameState.messages.length, gameState.gameId, gameState.score, gameState.defeatedFeissari, gameState.balance, router]);
 
+  // Ensure the input is focused when it's the user's turn to reply (new AI response)
+  useEffect(() => {
+    // Focus only during active gameplay and when not loading
+    if (!gameState.isActive || gameState.isLoading) {
+      prevIsLoadingRef.current = gameState.isLoading;
+      return;
+    }
+
+    // If loading just finished, and last AI message doesn't signal moving on, focus the input
+    const lastAi = [...gameState.messages].reverse().find((m) => m.sender === 'ai');
+    const awaitingUser = !!lastAi && lastAi.goToNext !== true;
+
+    if (awaitingUser) {
+      // Use rAF to ensure the element is enabled/rendered before focusing
+      requestAnimationFrame(() => {
+        inputRef.current?.focus();
+      });
+    }
+
+    prevIsLoadingRef.current = gameState.isLoading;
+  }, [gameState.isActive, gameState.isLoading, gameState.messages.length]);
+
   const handleSendMessage = () => {
     if (inputMessage.trim() && !gameState.isLoading) {
       sendMessage(inputMessage);
       setInputMessage('');
+      // Keep the caret in the input after sending
+      requestAnimationFrame(() => inputRef.current?.focus());
     }
   };
 
@@ -353,6 +379,8 @@ export default function GameScreen() {
                         const payload = `*${action}*`;
                         sendMessage(payload);
                         setInputMessage('');
+                        // Return focus to the text input after using a quick action
+                        requestAnimationFrame(() => inputRef.current?.focus());
                       }}
                       className="whitespace-nowrap"
                     >
@@ -377,6 +405,7 @@ export default function GameScreen() {
               }}
               disabled={gameState.isLoading}
               className="flex-1"
+              ref={inputRef}
             />
             <Button
               onClick={handleSendMessage}
