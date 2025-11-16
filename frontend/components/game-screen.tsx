@@ -41,7 +41,7 @@ function VideoBackground({
 
     // If a new game just started, play by default
     if (!prevIsActive.current && isActive) {
-      v.play().catch(() => {});
+      v.play().catch(() => { });
     }
 
     // Find the last AI message
@@ -52,11 +52,11 @@ function VideoBackground({
     // Control background based on transition and AI messages
     // Only play at the beginning of the game (handled above) or while transitioning between feissari
     if (isTransitioning) {
-      v.play().catch(() => {});
+      v.play().catch(() => { });
     } else {
       // If a new AI response has arrived for a feissari (i.e., not goToNext), pause immediately
       if ((lastAiName !== prevLastAiName.current || prevLastAiHadGoToNext.current) && !lastAiGoToNext) {
-        try { v.pause(); } catch (_) {}
+        try { v.pause(); } catch (_) { }
       }
     }
 
@@ -167,7 +167,7 @@ export default function GameScreen() {
         }
       })();
 
-      
+
     }
   }, [gameState.isActive, gameState.messages.length, gameState.gameId, gameState.score, gameState.defeatedFeissari, gameState.balance, router]);
 
@@ -188,17 +188,17 @@ export default function GameScreen() {
   if (!gameState.isActive && gameState.messages.length === 0) {
     return (
       <div className="flex min-h-screen items-center justify-center relative">
-  <VideoBackground isLoading={gameState.isLoading} messages={gameState.messages} isActive={gameState.isActive} isTransitioning={!!gameState.isTransitioning} />
+        <VideoBackground isLoading={gameState.isLoading} messages={gameState.messages} isActive={gameState.isActive} isTransitioning={!!gameState.isTransitioning} />
         <div className="w-full max-w-md space-y-8 rounded-lg bg-white p-10 shadow-2xl dark:bg-gray-800 relative z-10">
           <div className="text-center">
-            <h1 className="text-5xl font-bold text-emerald-800 dark:text-emerald-400 mb-4">
+            <h1 className="text-5xl font-bold text-primary mb-4">
               Survive the Feissari
             </h1>
             <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
               Can you survive 3 minutes without losing all your money?
             </p>
-            <div className="space-y-4 text-left bg-emerald-50 dark:bg-emerald-950 p-6 rounded-lg">
-              <h2 className="font-bold text-xl text-emerald-800 dark:text-emerald-400">Game Rules:</h2>
+            <div className="space-y-4 text-left bg-secondary dark:bg-gray-900 p-6 rounded-lg">
+              <h2 className="font-bold text-xl text-primary">Game Rules:</h2>
               <ul className="space-y-2 text-gray-700 dark:text-gray-300">
                 <li>💰 Starting balance: €{gameState.balance}</li>
                 <li>⏱️ Time limit: 3 minutes</li>
@@ -207,11 +207,11 @@ export default function GameScreen() {
               </ul>
             </div>
           </div>
-          
+
           <Button
             onClick={startGame}
             disabled={gameState.isLoading}
-            className="w-full h-14 text-lg font-semibold bg-emerald-600 hover:bg-emerald-700"
+            className="w-full h-14 text-lg font-semibold bg-primary hover:bg-primary/90"
             size="lg"
           >
             {gameState.isLoading ? "Starting Game..." : "Start Game"}
@@ -225,11 +225,11 @@ export default function GameScreen() {
   if (!gameState.isActive && gameState.messages.length > 0) {
     return (
       <div className="flex min-h-screen items-center justify-center relative">
-  <VideoBackground isLoading={gameState.isLoading} messages={gameState.messages} isActive={gameState.isActive} isTransitioning={!!gameState.isTransitioning} />
+        <VideoBackground isLoading={gameState.isLoading} messages={gameState.messages} isActive={gameState.isActive} isTransitioning={!!gameState.isTransitioning} />
         <div className="w-full max-w-sm space-y-4 rounded-lg bg-white p-8 shadow-2xl dark:bg-gray-800 text-center relative z-10">
           <p className="text-lg text-gray-700 dark:text-gray-300">Saving your result and redirecting to leaderboard...</p>
           <div className="flex justify-center mt-4">
-            <div className="w-6 h-6 border-4 border-emerald-600 border-dashed rounded-full animate-spin"></div>
+            <div className="w-6 h-6 border-4 border-primary border-dashed rounded-full animate-spin"></div>
           </div>
         </div>
       </div>
@@ -239,127 +239,124 @@ export default function GameScreen() {
   // Active game screen
   return (
     <div className="relative">
-  <VideoBackground isLoading={gameState.isLoading} messages={gameState.messages} isActive={gameState.isActive} isTransitioning={!!gameState.isTransitioning} />
+      <VideoBackground isLoading={gameState.isLoading} messages={gameState.messages} isActive={gameState.isActive} isTransitioning={!!gameState.isTransitioning} />
       <div className="flex flex-col h-screen relative z-10">
         {/* Header with stats */}
         <div className="bg-white dark:bg-gray-800 shadow-lg p-4">
-        <div className="max-w-4xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-6">
-            <div className="text-center">
-              <p className="text-sm text-gray-600 dark:text-gray-400">Score</p>
-              <p className={`text-2xl font-bold text-emerald-600 dark:text-emerald-400 transition-all duration-300 ${
-                animatingScore ? 'scale-125' : 'scale-100'
-              }`}>
-                {currentScore}
-              </p>
+          <div className="max-w-4xl mx-auto flex justify-between items-center">
+            <div className="flex items-center gap-6">
+              <div className="text-center">
+                <p className="text-sm text-gray-600 dark:text-gray-400">Score</p>
+                <p className={`text-2xl font-bold text-primary transition-all duration-300 ${animatingScore ? 'scale-125' : 'scale-100'
+                  }`}>
+                  {currentScore}
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-sm text-gray-600 dark:text-gray-400">Balance</p>
+                <p className={`text-2xl font-bold ${gameState.balance < 30
+                    ? 'text-red-600 dark:text-red-400'
+                    : 'text-primary'
+                  }`}>
+                  €{gameState.balance}
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-sm text-gray-600 dark:text-gray-400">Defeated</p>
+                <p className="text-2xl font-bold text-gray-800 dark:text-gray-200">
+                  {gameState.defeatedFeissari || 0}
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-sm text-gray-600 dark:text-gray-400">Time</p>
+                <p className={`text-2xl font-bold ${gameState.timeRemaining < 30
+                    ? 'text-red-600 dark:text-red-400'
+                    : 'text-gray-800 dark:text-gray-200'
+                  }`}>
+                  {formatTime(gameState.timeRemaining)}
+                </p>
+              </div>
             </div>
-            <div className="text-center">
-              <p className="text-sm text-gray-600 dark:text-gray-400">Balance</p>
-              <p className={`text-2xl font-bold ${
-                gameState.balance < 30 
-                  ? 'text-red-600 dark:text-red-400' 
-                  : 'text-emerald-600 dark:text-emerald-400'
-              }`}>
-                €{gameState.balance}
-              </p>
-            </div>
-            <div className="text-center">
-              <p className="text-sm text-gray-600 dark:text-gray-400">Defeated</p>
-              <p className="text-2xl font-bold text-gray-800 dark:text-gray-200">
-                {gameState.defeatedFeissari || 0}
-              </p>
-            </div>
-            <div className="text-center">
-              <p className="text-sm text-gray-600 dark:text-gray-400">Time</p>
-              <p className={`text-2xl font-bold ${
-                gameState.timeRemaining < 30 
-                  ? 'text-red-600 dark:text-red-400' 
-                  : 'text-gray-800 dark:text-gray-200'
-              }`}>
-                {formatTime(gameState.timeRemaining)}
-              </p>
-            </div>
+            {gameState.currentFeissariName && (
+              <div className="text-right">
+                <p className="text-sm text-gray-600 dark:text-gray-400">Talking to</p>
+                <p className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                  {gameState.currentFeissariName}
+                </p>
+              </div>
+            )}
           </div>
+        </div>
+
+        {/* Focused chat UI: only newest feissari message and newest own message */}
+        <div className="flex-1 relative">
+          {/* Feissari emote + bubble centered X, 1/3 from bottom Y */}
           {gameState.currentFeissariName && (
-            <div className="text-right">
-              <p className="text-sm text-gray-600 dark:text-gray-400">Talking to</p>
-              <p className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-                {gameState.currentFeissariName}
-              </p>
+            <div className="pointer-events-none fixed left-1/2 bottom-[24%] -translate-x-2/3 flex flex-col items-center gap-3 z-10">
+              {/* Speech bubble appears after emote entrance animation */}
+              {showFeissariBubble && (
+                <FeissariBubble gameState={gameState} />
+              )}
+              {/* Emote with entrance animation */}
+              <div className={`transition-all duration-1000 ${emoteVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+                {(() => {
+                  const lastAi = [...gameState.messages].reverse().find(m => m.sender === 'ai');
+                  const emoteAssets = lastAi?.emoteAssets;
+                  return emoteAssets ? (
+                    <EmoteImage emoteAssets={emoteAssets} className="mr-0" />
+                  ) : null;
+                })()}
+              </div>
             </div>
           )}
+
+          {/* User bubble at bottom-right: hide on feissari change until user types or replies */}
+          {(() => {
+            const isTyping = inputMessage.trim().length > 0 && !gameState.isLoading;
+            const lastAiIndex = [...gameState.messages]
+              .map((m, idx) => ({ m, idx }))
+              .reverse()
+              .find(({ m }) => m.sender === 'ai' && m.feissariName === gameState.currentFeissariName)?.idx ?? -1;
+            const hasUserAfterLastAi = lastAiIndex >= 0
+              ? gameState.messages.slice(lastAiIndex + 1).some((m: ChatMessage) => m.sender === 'user')
+              : false;
+            const showUser = isTyping || hasUserAfterLastAi;
+            return showUser ? (
+              <div className="pointer-events-none fixed bottom-[15%] right-[15%] z-10">
+                <UserBubble gameState={gameState} inputMessage={inputMessage} />
+              </div>
+            ) : null;
+          })()}
         </div>
-      </div>
 
-      {/* Focused chat UI: only newest feissari message and newest own message */}
-      <div className="flex-1 relative">
-        {/* Feissari emote + bubble centered X, 1/3 from bottom Y */}
-        {gameState.currentFeissariName && (
-          <div className="pointer-events-none fixed left-1/2 bottom-[24%] -translate-x-2/3 flex flex-col items-center gap-3 z-10">
-            {/* Speech bubble appears after emote entrance animation */}
-            {showFeissariBubble && (
-              <FeissariBubble gameState={gameState} />
-            )}
-            {/* Emote with entrance animation */}
-            <div className={`transition-all duration-1000 ${emoteVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-              {(() => {
-                const lastAi = [...gameState.messages].reverse().find(m => m.sender === 'ai');
-                const emoteAssets = lastAi?.emoteAssets;
-                return emoteAssets ? (
-                  <EmoteImage emoteAssets={emoteAssets} className="mr-0" />
-                ) : null;
-              })()}
-            </div>
-          </div>
-        )}
-
-        {/* User bubble at bottom-right: hide on feissari change until user types or replies */}
-        {(() => {
-          const isTyping = inputMessage.trim().length > 0 && !gameState.isLoading;
-          const lastAiIndex = [...gameState.messages]
-            .map((m, idx) => ({ m, idx }))
-            .reverse()
-            .find(({ m }) => m.sender === 'ai' && m.feissariName === gameState.currentFeissariName)?.idx ?? -1;
-          const hasUserAfterLastAi = lastAiIndex >= 0
-            ? gameState.messages.slice(lastAiIndex + 1).some((m: ChatMessage) => m.sender === 'user')
-            : false;
-          const showUser = isTyping || hasUserAfterLastAi;
-          return showUser ? (
-            <div className="pointer-events-none fixed bottom-[15%] right-[15%] z-10">
-              <UserBubble gameState={gameState} inputMessage={inputMessage} />
-            </div>
-          ) : null;
-        })()}
-      </div>
-
-      {/* Input area */}
+        {/* Input area */}
         {/* Input area */}
         <div className="bg-white dark:bg-gray-800 shadow-lg p-4">
-        <div className="max-w-4xl mx-auto flex gap-2">
-          <Input
-            type="text"
-            placeholder="Type your response..."
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSendMessage();
-              }
-            }}
-            disabled={gameState.isLoading}
-            className="flex-1"
-          />
-          <Button
-            onClick={handleSendMessage}
-            disabled={!inputMessage.trim() || gameState.isLoading}
-            className="bg-emerald-600 hover:bg-emerald-700"
-          >
-            Send
-          </Button>
+          <div className="max-w-4xl mx-auto flex gap-2">
+            <Input
+              type="text"
+              placeholder="Type your response..."
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage();
+                }
+              }}
+              disabled={gameState.isLoading}
+              className="flex-1"
+            />
+            <Button
+              onClick={handleSendMessage}
+              disabled={!inputMessage.trim() || gameState.isLoading}
+              className="bg-primary hover:bg-primary/90"
+            >
+              Send
+            </Button>
+          </div>
         </div>
       </div>
-    </div>
     </div>
   );
 }
@@ -379,7 +376,7 @@ function FeissariBubble({ gameState }: { gameState: GameState }) {
         {/* top corners rounded; keep bottom edge straight where tail is */}
         <div className="text-sm sm:text-base whitespace-pre-wrap">
           {showTyping ? (
-            <TypingDots colorClass="bg-emerald-600" />
+            <TypingDots colorClass="bg-primary" />
           ) : (
             content
           )}
@@ -398,7 +395,7 @@ function UserBubble({ gameState, inputMessage }: { gameState: GameState; inputMe
 
   // Bubble with bottom-right corner not rounded (toward user position)
   return (
-    <div className="max-w-[40vw] sm:max-w-[35vw] bg-emerald-600/95 text-white px-4 py-3 rounded-tl-2xl rounded-tr-2xl rounded-bl-2xl rounded-br-none shadow-xl">
+    <div className="max-w-[40vw] sm:max-w-[35vw] bg-primary/95 text-white px-4 py-3 rounded-tl-2xl rounded-tr-2xl rounded-bl-2xl rounded-br-none shadow-xl">
       <div className="text-sm sm:text-base whitespace-pre-wrap">
         {isTyping ? <TypingDots colorClass="bg-white" /> : content}
       </div>
@@ -406,7 +403,7 @@ function UserBubble({ gameState, inputMessage }: { gameState: GameState; inputMe
   );
 }
 
-function TypingDots({ colorClass = 'bg-emerald-600' }: { colorClass?: string }) {
+function TypingDots({ colorClass = 'bg-primary' }: { colorClass?: string }) {
   return (
     <div className="flex items-center gap-1 h-4">
       <span className={`w-2 h-2 rounded-full ${colorClass} animate-bounce`}></span>

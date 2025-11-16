@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { GameProvider } from "@/lib/game-context";
 
@@ -11,6 +12,14 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+const boldPixels = localFont({
+  src: "../public/fonts/BoldPixels.ttf",
+  variable: "--font-bold-pixels",
+  weight: "400",
+  style: "normal",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -29,7 +38,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="Feissari" />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${boldPixels.variable} antialiased`}
       >
         <GameProvider>
           {children}
