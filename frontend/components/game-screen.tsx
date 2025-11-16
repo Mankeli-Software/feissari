@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation'
-import { useGame, EmoteImage } from '@/lib/game-context';
+import { useGame, EmoteImage, useAudioMute } from '@/lib/game-context';
 import ThreatStars from '@/components/threat-stars';
 import type { GameState, ChatMessage } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -24,13 +24,18 @@ function VideoBackground({
   messages,
   isActive,
   isTransitioning,
+  stepsAudioRef,
+  isMuted,
 }: {
   isLoading: boolean;
   messages: any[];
   isActive: boolean;
   isTransitioning: boolean;
+  stepsAudioRef: React.RefObject<HTMLAudioElement | null>;
+  isMuted: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const prevIsActive = useRef<boolean>(false);
 
   // Track the last AI message we've seen (id) and whether it had goToNext.
@@ -39,11 +44,15 @@ function VideoBackground({
 
   useEffect(() => {
     const v = videoRef.current;
+    const a = audioRef.current;
     if (!v) return;
 
     // If a new game just started, play by default
     if (!prevIsActive.current && isActive) {
       v.play().catch(() => { });
+      if (a) {
+        a.play().catch(() => { });
+      }
     }
 
     // Find the last AI message
@@ -55,10 +64,18 @@ function VideoBackground({
     // Only play at the beginning of the game (handled above) or while transitioning between feissari
     if (isTransitioning) {
       v.play().catch(() => { });
+      if (a) {
+        a.play().catch(() => { });
+      }
     } else {
       // If a new AI response has arrived for a feissari (i.e., not goToNext), pause immediately
       if ((lastAiName !== prevLastAiName.current || prevLastAiHadGoToNext.current) && !lastAiGoToNext) {
-        try { v.pause(); } catch (_) { }
+        try { 
+          v.pause(); 
+          if (a) {
+            a.pause();
+          }
+        } catch (_) { }
       }
     }
 
@@ -69,23 +86,41 @@ function VideoBackground({
   }, [messages, isActive, isLoading, isTransitioning]);
 
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <video
-      ref={videoRef}
-      src="/background.webm"
-      // paused by default — play while loading is true or per game events
-      muted
-      playsInline
-      loop
-      preload="metadata"
-      className="pointer-events-none fixed inset-0 w-full h-full object-cover z-0"
-      aria-hidden
-    />
+    <>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <video
+        ref={videoRef}
+        src="/background.webm"
+        // paused by default — play while loading is true or per game events
+        muted
+        playsInline
+        loop
+        preload="metadata"
+        className="pointer-events-none fixed inset-0 w-full h-full object-cover z-0"
+        aria-hidden
+      />
+      {/* Walking sound synchronized with video */}
+      <audio
+        ref={(el) => {
+          audioRef.current = el;
+          if (stepsAudioRef) {
+            stepsAudioRef.current = el;
+          }
+        }}
+        src="/audio/steps.wav"
+        loop
+        preload="auto"
+        muted={isMuted}
+        aria-hidden
+        className="hidden"
+      />
+    </>
   );
 }
 
 export default function GameScreen() {
   const { gameState, startGame, sendMessage, resetGame } = useGame();
+  const { isMuted, toggleMute } = useAudioMute();
 
   // Video background ref is kept in a component below; expose it here if needed later
   const router = useRouter()
@@ -102,6 +137,7 @@ export default function GameScreen() {
   const [showFeissariBubble, setShowFeissariBubble] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const prevIsLoadingRef = useRef<boolean>(false);
+  const stepsAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Start game + kick off background audio from a user gesture to satisfy autoplay policies
   const handleStartGame = async () => {
@@ -110,6 +146,7 @@ export default function GameScreen() {
       try {
         a.loop = true;
         a.volume = 0.25; // keep it subtle
+        a.muted = isMuted;
         await a.play();
       } catch (_) {
         // ignore autoplay errors; we'll try again in the effect below
@@ -117,6 +154,19 @@ export default function GameScreen() {
     }
     await startGame();
   };
+
+  // Effect to handle muting/unmuting all audio elements
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.muted = isMuted;
+    }
+    if (feissariAudioRef.current) {
+      feissariAudioRef.current.muted = isMuted;
+    }
+    if (stepsAudioRef.current) {
+      stepsAudioRef.current.muted = isMuted;
+    }
+  }, [isMuted]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -278,7 +328,7 @@ export default function GameScreen() {
       <div className="flex min-h-screen items-center justify-center relative">
         {/* Hidden audio element for background music */}
         <audio ref={audioRef} src="/audio/metrobackgroundsound.mp3" loop preload="auto" aria-hidden className="hidden" />
-        <VideoBackground isLoading={gameState.isLoading} messages={gameState.messages} isActive={gameState.isActive} isTransitioning={!!gameState.isTransitioning} />
+        <VideoBackground isLoading={gameState.isLoading} messages={gameState.messages} isActive={gameState.isActive} isTransitioning={!!gameState.isTransitioning} stepsAudioRef={stepsAudioRef} isMuted={isMuted} />
         <div className="w-full max-w-md space-y-8 rounded-lg bg-white p-10 shadow-2xl dark:bg-gray-800 relative z-10">
           <div className="text-center">
             <h1 className="text-5xl font-bold text-primary mb-4">
@@ -317,7 +367,7 @@ export default function GameScreen() {
       <div className="flex min-h-screen items-center justify-center relative">
         {/* Hidden audio element for background music */}
         <audio ref={audioRef} src="/audio/metrobackgroundsound.mp3" loop preload="auto" aria-hidden className="hidden" />
-        <VideoBackground isLoading={gameState.isLoading} messages={gameState.messages} isActive={gameState.isActive} isTransitioning={!!gameState.isTransitioning} />
+        <VideoBackground isLoading={gameState.isLoading} messages={gameState.messages} isActive={gameState.isActive} isTransitioning={!!gameState.isTransitioning} stepsAudioRef={stepsAudioRef} isMuted={isMuted} />
         <div className="w-full max-w-sm space-y-4 rounded-lg bg-white p-8 shadow-2xl dark:bg-gray-800 text-center relative z-10">
           <p className="text-lg text-gray-700 dark:text-gray-300">Saving your result and redirecting to leaderboard...</p>
           <div className="flex justify-center mt-4">
@@ -335,7 +385,7 @@ export default function GameScreen() {
       <audio ref={audioRef} src="/audio/metrobackgroundsound.mp3" loop preload="auto" aria-hidden className="hidden" />
       {/* Hidden audio element for feissari speech */}
       <audio ref={feissariAudioRef} preload="auto" aria-hidden className="hidden" />
-      <VideoBackground isLoading={gameState.isLoading} messages={gameState.messages} isActive={gameState.isActive} isTransitioning={!!gameState.isTransitioning} />
+      <VideoBackground isLoading={gameState.isLoading} messages={gameState.messages} isActive={gameState.isActive} isTransitioning={!!gameState.isTransitioning} stepsAudioRef={stepsAudioRef} isMuted={isMuted} />
       <div className="flex flex-col h-screen relative z-10">
         {/* Header with stats */}
         <div className="bg-white dark:bg-gray-800 shadow-lg p-4">
@@ -379,14 +429,33 @@ export default function GameScreen() {
                 </p>
               </div>
             </div>
-            {gameState.currentFeissariName && (
-              <div className="text-right">
-                <p className="text-sm text-gray-600 dark:text-gray-400">Talking to</p>
-                <p className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-                  {gameState.currentFeissariName}
-                </p>
-              </div>
-            )}
+            <div className="flex items-center gap-4">
+              {gameState.currentFeissariName && (
+                <div className="text-right">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Talking to</p>
+                  <p className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                    {gameState.currentFeissariName}
+                  </p>
+                </div>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleMute}
+                className="p-2 h-10 w-10"
+                title={isMuted ? "Unmute sound" : "Mute sound"}
+              >
+                {isMuted ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 9.75L19.5 12m0 0l2.25 2.25M19.5 12l2.25-2.25M19.5 12l-2.25 2.25m-10.5-6l4.72-4.72a.75.75 0 011.28.531V19.94a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.506-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.395C2.806 8.757 3.63 8.25 4.51 8.25H6.75z" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
+                  </svg>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
 

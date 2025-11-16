@@ -256,7 +256,7 @@ export default function LeaderboardScreen({
                 <p className="text-2xl font-bold text-gray-800 dark:text-gray-200">{stats.totalGamesPlayed}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">💸 Meme Token Churn™</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">💸 Token Churn™</p>
                 <p className="text-2xl font-bold text-primary">{stats.tokenChurn}</p>
                 <p className="text-xs text-gray-500 dark:text-gray-500 italic">*Totally accurate AI costs</p>
               </div>

@@ -8,6 +8,36 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:300
 const GAME_DURATION_MS = 3 * 60 * 1000; // 3 minutes
 const INITIAL_BALANCE = 100;
 
+// Audio mute state management
+const MUTE_STORAGE_KEY = 'feissari_audio_muted';
+
+export function useAudioMute() {
+  const [isMuted, setIsMuted] = useState(false);
+
+  useEffect(() => {
+    // Load mute state from localStorage on mount
+    const stored = localStorage.getItem(MUTE_STORAGE_KEY);
+    if (stored !== null) {
+      setIsMuted(stored === 'true');
+    }
+  }, []);
+
+  const toggleMute = useCallback(() => {
+    setIsMuted(prev => {
+      const newValue = !prev;
+      localStorage.setItem(MUTE_STORAGE_KEY, String(newValue));
+      return newValue;
+    });
+  }, []);
+
+  const setMuted = useCallback((value: boolean) => {
+    setIsMuted(value);
+    localStorage.setItem(MUTE_STORAGE_KEY, String(value));
+  }, []);
+
+  return { isMuted, toggleMute, setMuted };
+}
+
 interface GameContextType {
   gameState: GameState;
   startGame: () => Promise<void>;
@@ -31,6 +61,22 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   });
 
   const [startTime, setStartTime] = useState<number | null>(null);
+  const [prevBalance, setPrevBalance] = useState<number>(INITIAL_BALANCE);
+
+  // Play kaching sound effect when balance changes
+  useEffect(() => {
+    if (gameState.balance !== prevBalance && gameState.gameId) {
+      // Only play if game has started (gameId exists)
+      const audio = new Audio('/audio/kaching.wav');
+      audio.volume = 0.5; // Set volume to 50%
+      // Check mute state from localStorage
+      const isMuted = localStorage.getItem(MUTE_STORAGE_KEY) === 'true';
+      if (!isMuted) {
+        audio.play().catch(err => console.error('Error playing kaching sound:', err));
+      }
+      setPrevBalance(gameState.balance);
+    }
+  }, [gameState.balance, gameState.gameId, prevBalance]);
 
   // Timer effect - counts down and marks game inactive when time expires
   // The backend automatically saves to leaderboard when it receives any API call
