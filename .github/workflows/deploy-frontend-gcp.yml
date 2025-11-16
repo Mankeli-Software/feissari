@@ -1,0 +1,44 @@
+name: Deploy Next.js Frontend to GCP Storage
+
+on:
+    workflow_dispatch:
+    push:
+        branches:
+            - main
+
+jobs:
+    build-and-deploy:
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: ./frontend
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "20"
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Build Next.js app
+              run: npm run build && npm run export
+
+            - name: Setup Google Cloud SDK
+              uses: google-github-actions/setup-gcloud@v2
+              with:
+                  project_id: ${{ secrets.GCP_PROJECT_ID }}
+                  service_account_key: ${{ secrets.GCP_SA_KEY }}
+                  export_default_credentials: true
+
+            - name: Upload to GCS bucket
+              run: |
+                  gsutil -m rsync -r -d ./out gs://${{ secrets.GCP_BUCKET_NAME }}
+
+            - name: Set website configuration (optional)
+              run: |
+                  gsutil web set -m index.html -e 404.html gs://${{ secrets.GCP_BUCKET_NAME }}
+              continue-on-error: true
