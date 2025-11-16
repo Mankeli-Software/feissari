@@ -145,118 +145,114 @@ export default function LeaderboardScreen({
               </div>
             )}
 
-            {/* Top 10 All-Time */}
-            {topLeaderboard && (
-              <div className="rounded-lg bg-white p-6 shadow-2xl dark:bg-gray-800">
-                <h2 className="text-2xl font-bold text-primary mb-4">
-                  🌟 Top 10 All-Time High Scores
-                </h2>
-                <div className="space-y-2">
-                  {topLeaderboard.entries.map((entry, index) => {
-                    const isCurrentUser = entry.userId === sessionId;
-                    return (
-                      <div
-                        key={index}
-                        className={`flex justify-between items-center p-3 rounded ${isCurrentUser
-                          ? 'bg-orange-100 dark:bg-orange-900 border-2 border-primary'
-                          : 'bg-gray-50 dark:bg-gray-700'
-                          }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="font-bold text-lg w-8">{entry.rank}.</span>
-                          <span className={isCurrentUser ? 'font-bold' : ''}>{entry.userName}</span>
+            {/* Leaderboard cards side by side on medium+ screens */}
+            <div className="grid gap-6 md:grid-cols-2">
+              {topLeaderboard && (
+                <div className="rounded-lg bg-white p-5 shadow-2xl dark:bg-gray-800">
+                  <h2 className="text-xl font-bold text-primary mb-3">
+                    🌟 Top 10 All-Time
+                  </h2>
+                  <div className="space-y-2">
+                    {topLeaderboard.entries.map((entry, index) => {
+                      const isCurrentUser = entry.userId === sessionId;
+                      return (
+                        <div
+                          key={index}
+                          className={`flex justify-between items-center p-3 rounded ${isCurrentUser
+                            ? 'bg-orange-100 dark:bg-orange-900 border-2 border-primary'
+                            : 'bg-gray-50 dark:bg-gray-700'
+                            }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="font-bold text-lg w-8">{entry.rank}.</span>
+                            <span className={isCurrentUser ? 'font-bold' : ''}>{entry.userName}</span>
+                          </div>
+                          <div className="flex gap-4 text-xs md:text-sm">
+                            <span className="font-semibold">Score: {entry.score}</span>
+                            <span className="text-gray-600 dark:text-gray-400">
+                              {entry.defeatedFeissari} × €{entry.finalBalance}
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex gap-4 text-sm">
-                          <span className="font-semibold">Score: {entry.score}</span>
-                          <span className="text-gray-600 dark:text-gray-400">
-                            {entry.defeatedFeissari} defeated × €{entry.finalBalance}
-                          </span>
+                      );
+                    })}
+                  </div>
+                  {topLeaderboard.currentUserEntry && !topLeaderboard.entries.find(e => e.userId === sessionId) && (
+                    <>
+                      <div className="my-4 border-t border-gray-300 dark:border-gray-600"></div>
+                      <div className="bg-orange-100 dark:bg-orange-900 border-2 border-primary p-3 rounded">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-3">
+                            <span className="font-bold text-lg w-8">#{topLeaderboard.currentUserRank}</span>
+                            <span className="font-bold">{topLeaderboard.currentUserEntry.userName} (You)</span>
+                          </div>
+                          <div className="flex gap-4 text-xs md:text-sm">
+                            <span className="font-semibold">Score: {topLeaderboard.currentUserEntry.score}</span>
+                            <span className="text-gray-600 dark:text-gray-400">
+                              {topLeaderboard.currentUserEntry.defeatedFeissari} × €{topLeaderboard.currentUserEntry.finalBalance}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    );
-                  })}
+                    </>
+                  )}
                 </div>
-
-                {/* Show current user if not in top 10 */}
-                {topLeaderboard.currentUserEntry && !topLeaderboard.entries.find(e => e.userId === sessionId) && (
-                  <>
-                    <div className="my-4 border-t border-gray-300 dark:border-gray-600"></div>
-                    <div className="bg-orange-100 dark:bg-orange-900 border-2 border-primary p-3 rounded">
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-3">
-                          <span className="font-bold text-lg w-8">#{topLeaderboard.currentUserRank}</span>
-                          <span className="font-bold">{topLeaderboard.currentUserEntry.userName} (You)</span>
+              )}
+              {recentLeaderboard && (
+                <div className="rounded-lg bg-white p-5 shadow-2xl dark:bg-gray-800">
+                  <h2 className="text-xl font-bold text-primary mb-3">
+                    🕒 Recent 10 Games
+                  </h2>
+                  <div className="space-y-2">
+                    {recentLeaderboard.entries.map((entry, index) => {
+                      const isCurrentUser = entry.userId === sessionId;
+                      return (
+                        <div
+                          key={index}
+                          className={`flex justify-between items-center p-3 rounded ${isCurrentUser
+                            ? 'bg-orange-100 dark:bg-orange-900 border-2 border-primary'
+                            : 'bg-gray-50 dark:bg-gray-700'
+                            }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="font-bold text-lg w-8">{index + 1}.</span>
+                            <span className={isCurrentUser ? 'font-bold' : ''}>{entry.userName}</span>
+                          </div>
+                          <div className="flex gap-4 text-xs md:text-sm">
+                            <span className="font-semibold">Score: {entry.score}</span>
+                            <span className="text-gray-600 dark:text-gray-400">
+                              {entry.defeatedFeissari} × €{entry.finalBalance}
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex gap-4 text-sm">
-                          <span className="font-semibold">Score: {topLeaderboard.currentUserEntry.score}</span>
-                          <span className="text-gray-600 dark:text-gray-400">
-                            {topLeaderboard.currentUserEntry.defeatedFeissari} defeated × €{topLeaderboard.currentUserEntry.finalBalance}
-                          </span>
+                      );
+                    })}
+                  </div>
+                  {recentLeaderboard.currentUserEntry && !recentLeaderboard.entries.find(e => e.userId === sessionId) && (
+                    <>
+                      <div className="my-4 border-t border-gray-300 dark:border-gray-600"></div>
+                      <div className="bg-orange-100 dark:bg-orange-900 border-2 border-primary p-3 rounded">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-3">
+                            <span className="font-bold text-lg w-8">#{recentLeaderboard.currentUserPosition}</span>
+                            <span className="font-bold">{recentLeaderboard.currentUserEntry.userName} (You)</span>
+                            <span className="text-xs text-gray-600 dark:text-gray-400">
+                              {recentLeaderboard.currentUserPosition! - 1} more recent
+                            </span>
+                          </div>
+                          <div className="flex gap-4 text-xs md:text-sm">
+                            <span className="font-semibold">Score: {recentLeaderboard.currentUserEntry.score}</span>
+                            <span className="text-gray-600 dark:text-gray-400">
+                              {recentLeaderboard.currentUserEntry.defeatedFeissari} × €{recentLeaderboard.currentUserEntry.finalBalance}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-
-            {/* Recent 10 */}
-            {recentLeaderboard && (
-              <div className="rounded-lg bg-white p-6 shadow-2xl dark:bg-gray-800">
-                <h2 className="text-2xl font-bold text-primary mb-4">
-                  🕒 10 Most Recent Games
-                </h2>
-                <div className="space-y-2">
-                  {recentLeaderboard.entries.map((entry, index) => {
-                    const isCurrentUser = entry.userId === sessionId;
-                    return (
-                      <div
-                        key={index}
-                        className={`flex justify-between items-center p-3 rounded ${isCurrentUser
-                          ? 'bg-orange-100 dark:bg-orange-900 border-2 border-primary'
-                          : 'bg-gray-50 dark:bg-gray-700'
-                          }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="font-bold text-lg w-8">{index + 1}.</span>
-                          <span className={isCurrentUser ? 'font-bold' : ''}>{entry.userName}</span>
-                        </div>
-                        <div className="flex gap-4 text-sm">
-                          <span className="font-semibold">Score: {entry.score}</span>
-                          <span className="text-gray-600 dark:text-gray-400">
-                            {entry.defeatedFeissari} defeated × €{entry.finalBalance}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
+                    </>
+                  )}
                 </div>
-
-                {/* Show current user if not in recent 10 */}
-                {recentLeaderboard.currentUserEntry && !recentLeaderboard.entries.find(e => e.userId === sessionId) && (
-                  <>
-                    <div className="my-4 border-t border-gray-300 dark:border-gray-600"></div>
-                    <div className="bg-orange-100 dark:bg-orange-900 border-2 border-primary p-3 rounded">
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-3">
-                          <span className="font-bold text-lg w-8">#{recentLeaderboard.currentUserPosition}</span>
-                          <span className="font-bold">{recentLeaderboard.currentUserEntry.userName} (You)</span>
-                          <span className="text-xs text-gray-600 dark:text-gray-400">
-                            {recentLeaderboard.currentUserPosition! - 1} more recent
-                          </span>
-                        </div>
-                        <div className="flex gap-4 text-sm">
-                          <span className="font-semibold">Score: {recentLeaderboard.currentUserEntry.score}</span>
-                          <span className="text-gray-600 dark:text-gray-400">
-                            {recentLeaderboard.currentUserEntry.defeatedFeissari} defeated × €{recentLeaderboard.currentUserEntry.finalBalance}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
+              )}
+            </div>
           </>
         )}
 
