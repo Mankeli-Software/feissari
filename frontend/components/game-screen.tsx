@@ -222,7 +222,7 @@ export default function GameScreen() {
               Survive the Feissari
             </h1>
             <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
-              Can you survive 3 minutes without losing all your money?
+              Can you uncover the characters' weaknesses, or will you resort to using force?
             </p>
             <div className="space-y-4 text-left bg-secondary dark:bg-gray-900 p-6 rounded-lg">
               <h2 className="font-bold text-xl text-primary">Game Rules:</h2>

@@ -21,6 +21,9 @@
   --input: 16 30% 85%;
   --ring: 16 60% 48%;
   --radius: 0.5rem;
+
+  /* Global font-size scale factor: increase/decrease to scale all Tailwind text-* sizes */
+  --text-scale: 1.2; /* 1 = default, 1.0625 ≈ +6.25% */
 }
 
 @theme inline {
@@ -45,6 +48,21 @@
   --color-ring: hsl(var(--ring));
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Scaled font-size tokens: tweak --text-scale above to resize everything */
+  --text-xs: calc(var(--text-scale) * 0.75rem);  /* 12px base */
+  --text-sm: calc(var(--text-scale) * 0.875rem); /* 14px base */
+  --text-base: calc(var(--text-scale) * 1rem);   /* 16px base */
+  --text-lg: calc(var(--text-scale) * 1.125rem); /* 18px base */
+  --text-xl: calc(var(--text-scale) * 1.25rem);  /* 20px base */
+  --text-2xl: calc(var(--text-scale) * 1.5rem);  /* 24px base */
+  --text-3xl: calc(var(--text-scale) * 1.875rem);/* 30px base */
+  --text-4xl: calc(var(--text-scale) * 2.25rem); /* 36px base */
+  --text-5xl: calc(var(--text-scale) * 3rem);    /* 48px base */
+  --text-6xl: calc(var(--text-scale) * 3.75rem); /* 60px base */
+  --text-7xl: calc(var(--text-scale) * 4.5rem);  /* 72px base */
+  --text-8xl: calc(var(--text-scale) * 6rem);    /* 96px base */
+  --text-9xl: calc(var(--text-scale) * 8rem);    /* 128px base */
 }
 
 @media (prefers-color-scheme: dark) {
