@@ -127,7 +127,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         throw new Error('Failed to get initial message');
       }
 
-      const data: UpdateGameResponse = await response.json();
+  const data: UpdateGameResponse = await response.json();
       
       const aiMessage: ChatMessage = {
         id: `ai-${Date.now()}`,
@@ -137,6 +137,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         emoteAssets: data.emoteAssets,
         balance: data.balance,
         goToNext: data.goToNext,
+        quickActions: data.quickActions,
       };
 
       setGameState(prev => ({
@@ -183,7 +184,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         throw new Error('Failed to send message');
       }
 
-      const data: UpdateGameResponse = await response.json();
+  const data: UpdateGameResponse = await response.json();
       
       const aiMessage: ChatMessage = {
         id: `ai-${Date.now()}`,
@@ -193,6 +194,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         emoteAssets: data.emoteAssets,
         balance: data.balance,
         goToNext: data.goToNext,
+        quickActions: data.quickActions,
       };
 
       setGameState(prev => ({
@@ -242,7 +244,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         throw new Error('Failed to fetch next feissari greeting');
       }
 
-      const data: UpdateGameResponse = await response.json();
+  const data: UpdateGameResponse = await response.json();
       
       const nextFeissariMessage: ChatMessage = {
         id: `ai-${Date.now()}-next`,
@@ -252,6 +254,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         emoteAssets: data.emoteAssets,
         balance: data.balance,
         goToNext: false, // Next feissari is just starting
+        quickActions: data.quickActions,
       };
 
       setGameState(prev => ({

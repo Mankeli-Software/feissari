@@ -322,7 +322,7 @@ export default function GameScreen() {
               : false;
             const showUser = isTyping || hasUserAfterLastAi;
             return showUser ? (
-              <div className="pointer-events-none fixed bottom-[15%] right-[15%] z-10">
+              <div className="pointer-events-none fixed bottom-[20%] right-[15%] z-10">
                 <UserBubble gameState={gameState} inputMessage={inputMessage} />
               </div>
             ) : null;
@@ -332,6 +332,37 @@ export default function GameScreen() {
         {/* Input area */}
         {/* Input area */}
         <div className="bg-white dark:bg-gray-800 shadow-lg p-4">
+          {/* Quick action buttons above the input field */}
+          {(() => {
+            const lastAi = [...gameState.messages].reverse().find((m) => m.sender === 'ai');
+            const actions: string[] = lastAi?.quickActions ?? [];
+            const shouldHide = lastAi?.goToNext === true; // hide if moving to next
+            if (shouldHide || !actions || actions.length === 0) return null;
+            return (
+              <div className="max-w-4xl mx-auto mb-3">
+                <div className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Quick Actions</div>
+                <div className="flex flex-wrap gap-2">
+                  {actions.map((action, idx) => (
+                    <Button
+                      key={`${action}-${idx}`}
+                      variant="outline"
+                      size="sm"
+                      disabled={gameState.isLoading}
+                      onClick={() => {
+                        if (gameState.isLoading) return;
+                        const payload = `*${action}*`;
+                        sendMessage(payload);
+                        setInputMessage('');
+                      }}
+                      className="whitespace-nowrap"
+                    >
+                      {action}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
           <div className="max-w-4xl mx-auto flex gap-2">
             <Input
               type="text"

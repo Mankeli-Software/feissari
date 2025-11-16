@@ -82,7 +82,7 @@ export default function LeaderboardScreen({
           <>
             <div className="rounded-lg bg-white p-8 shadow-2xl dark:bg-gray-800">
               <h1 className="text-5xl font-bold text-primary mb-4 text-center">
-                🏆 Your Last Game!
+                🏆 Latest Game!
               </h1>
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>

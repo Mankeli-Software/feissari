@@ -13,6 +13,7 @@ export interface UpdateGameResponse {
   feissariName: string;
   score?: number;
   defeatedFeissari?: number;
+  quickActions: string[];
 }
 
 export interface ChatMessage {
@@ -23,6 +24,7 @@ export interface ChatMessage {
   emoteAssets?: string[];
   balance?: number;
   goToNext?: boolean;  // Indicates if this message caused moving to next feissari
+  quickActions?: string[]; // Optional quick action labels suggested by AI
 }
 
 export interface GameState {
