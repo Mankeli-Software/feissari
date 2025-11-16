@@ -72,30 +72,38 @@ export default function LeaderboardScreen({
 
   const sessionId = Cookies.get('feissari_session');
 
+  const hasLastGame = (score !== undefined && defeatedFeissari !== undefined && finalBalance !== undefined);
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-orange-50 to-orange-100 dark:from-gray-900 dark:to-orange-950 p-4">
       <div className="w-full max-w-4xl space-y-6">
         {/* Header with score (only if previous game exists) */}
-        {(score !== undefined && defeatedFeissari !== undefined && finalBalance !== undefined) && (
-          <div className="rounded-lg bg-white p-8 shadow-2xl dark:bg-gray-800">
-            <h1 className="text-5xl font-bold text-primary mb-4 text-center">
-              🏆 Your Last Game!
-            </h1>
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Score</p>
-                <p className="text-3xl font-bold text-primary">{score}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Feissari Defeated</p>
-                <p className="text-3xl font-bold text-primary">{defeatedFeissari}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Final Balance</p>
-                <p className="text-3xl font-bold text-primary">€{finalBalance}</p>
+        {hasLastGame && (
+          <>
+            <div className="rounded-lg bg-white p-8 shadow-2xl dark:bg-gray-800">
+              <h1 className="text-5xl font-bold text-primary mb-4 text-center">
+                🏆 Your Last Game!
+              </h1>
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Score</p>
+                  <p className="text-3xl font-bold text-primary">{score}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Feissari Defeated</p>
+                  <p className="text-3xl font-bold text-primary">{defeatedFeissari}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Final Balance</p>
+                  <p className="text-3xl font-bold text-primary">€{finalBalance}</p>
+                </div>
               </div>
             </div>
-          </div>
+            {/* New Game Button immediately after last game card */}
+            <div className="flex justify-center">
+              <NewGameButton onNewGame={onNewGame} />
+            </div>
+          </>
         )}
 
         {/* Loading state */}
@@ -150,8 +158,8 @@ export default function LeaderboardScreen({
                       <div
                         key={index}
                         className={`flex justify-between items-center p-3 rounded ${isCurrentUser
-                            ? 'bg-orange-100 dark:bg-orange-900 border-2 border-primary'
-                            : 'bg-gray-50 dark:bg-gray-700'
+                          ? 'bg-orange-100 dark:bg-orange-900 border-2 border-primary'
+                          : 'bg-gray-50 dark:bg-gray-700'
                           }`}
                       >
                         <div className="flex items-center gap-3">
@@ -205,8 +213,8 @@ export default function LeaderboardScreen({
                       <div
                         key={index}
                         className={`flex justify-between items-center p-3 rounded ${isCurrentUser
-                            ? 'bg-orange-100 dark:bg-orange-900 border-2 border-primary'
-                            : 'bg-gray-50 dark:bg-gray-700'
+                          ? 'bg-orange-100 dark:bg-orange-900 border-2 border-primary'
+                          : 'bg-gray-50 dark:bg-gray-700'
                           }`}
                       >
                         <div className="flex items-center gap-3">
@@ -252,10 +260,12 @@ export default function LeaderboardScreen({
           </>
         )}
 
-        {/* New Game Button */}
-        <div className="flex justify-center">
-          <NewGameButton onNewGame={onNewGame} />
-        </div>
+        {/* New Game Button (fallback position when no last game) */}
+        {!hasLastGame && (
+          <div className="flex justify-center">
+            <NewGameButton onNewGame={onNewGame} />
+          </div>
+        )}
       </div>
     </div>
   );
