@@ -128,23 +128,6 @@ export default function LeaderboardScreen({
         {/* Leaderboards */}
         {!isLoading && !error && (
           <>
-            {/* Stats */}
-            {stats && (
-              <div className="rounded-lg bg-white p-6 shadow-2xl dark:bg-gray-800">
-                <div className="grid grid-cols-2 gap-4 text-center">
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Total Games Played</p>
-                    <p className="text-2xl font-bold text-gray-800 dark:text-gray-200">{stats.totalGamesPlayed}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">💸 Meme Token Churn™</p>
-                    <p className="text-2xl font-bold text-primary">{stats.tokenChurn}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-500 italic">*Totally accurate AI costs</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Leaderboard cards side by side on medium+ screens */}
             <div className="grid gap-6 md:grid-cols-2">
               {topLeaderboard && (
@@ -260,6 +243,23 @@ export default function LeaderboardScreen({
         {!hasLastGame && (
           <div className="flex justify-center">
             <NewGameButton onNewGame={onNewGame} />
+          </div>
+        )}
+
+        {/* Stats moved to bottom */}
+        {!isLoading && !error && stats && (
+          <div className="rounded-lg bg-white p-6 shadow-2xl dark:bg-gray-800">
+            <div className="grid grid-cols-2 gap-4 text-center">
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Total Games Played</p>
+                <p className="text-2xl font-bold text-gray-800 dark:text-gray-200">{stats.totalGamesPlayed}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">💸 Meme Token Churn™</p>
+                <p className="text-2xl font-bold text-primary">{stats.tokenChurn}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-500 italic">*Totally accurate AI costs</p>
+              </div>
+            </div>
           </div>
         )}
       </div>
