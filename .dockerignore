@@ -1,0 +1,17 @@
+**/node_modules
+**/.next/cache
+**/.next/standalone
+**/.turbo
+**/dist
+**/coverage
+**/.vite
+**/.vitest
+**/.eslintcache
+.git
+.gitignore
+.gitattributes
+.DS_Store
+.vscode
+*.log
+.env
+.env.*
