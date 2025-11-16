@@ -13,9 +13,6 @@ export interface UpdateGameResponse {
   feissariName: string;
   score?: number;
   defeatedFeissari?: number;
-  nextFeissariMessage?: string;
-  nextFeissariName?: string;
-  nextFeissariEmoteAssets?: string[];
 }
 
 export interface ChatMessage {
@@ -36,6 +33,8 @@ export interface GameState {
   messages: ChatMessage[];
   currentFeissariName: string;
   isLoading: boolean;
+  // Indicates the transitional phase between feissari: background animates and no feissari shown
+  isTransitioning?: boolean;
   score?: number;
   defeatedFeissari?: number;
 }
