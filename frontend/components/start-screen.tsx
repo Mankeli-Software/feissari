@@ -120,10 +120,10 @@ export default function StartScreen() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-emerald-50 to-green-100 dark:from-gray-900 dark:to-emerald-950">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-orange-50 to-orange-100 dark:from-gray-900 dark:to-orange-950">
         <div className="flex flex-col items-center gap-4 text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-emerald-600"></div>
-          <p className="text-xl text-emerald-700 dark:text-emerald-300">Loading...</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary"></div>
+          <p className="text-xl text-primary">Loading...</p>
         </div>
       </div>
     )
@@ -133,13 +133,13 @@ export default function StartScreen() {
   // Navigation to /game is done via router.push after creating/fetching session.
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-emerald-50 to-green-100 dark:from-gray-900 dark:to-emerald-950">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-orange-50 to-orange-100 dark:from-gray-900 dark:to-orange-950">
       <div className="w-full max-w-md space-y-8 rounded-lg bg-white p-10 shadow-2xl dark:bg-gray-800">
         <div className="text-center">
-          <h1 className="text-5xl font-bold text-emerald-800 dark:text-emerald-400 mb-2">
+          <h1 className="text-5xl font-bold text-primary mb-2">
             Survive the Feissari
           </h1>
-          <blockquote className="mt-6 p-4 border-l-4 border-emerald-600 bg-emerald-50 dark:bg-gray-900 text-left rounded">
+          <blockquote className="mt-6 p-4 border-l-4 border-primary bg-secondary dark:bg-gray-900 text-left rounded">
             <p className="italic text-gray-700 dark:text-gray-200">
               “A feissari (Finnish, from English "face-to-face") is a **slightly annoying** person who engages in face-to-face sales or fundraising, often for commercial companies or charities.”
             </p>
@@ -182,7 +182,7 @@ export default function StartScreen() {
           <Button
             onClick={handleStartPlaying}
             disabled={!playerName.trim() || isLoading}
-            className="w-full h-14 text-lg font-semibold bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 dark:disabled:bg-gray-600"
+            className="w-full h-14 text-lg font-semibold bg-primary hover:bg-primary/90 disabled:bg-gray-300 dark:disabled:bg-gray-600"
             size="lg"
           >
             {isLoading ? "Starting..." : "Start Playing"}

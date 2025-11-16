@@ -73,26 +73,26 @@ export default function LeaderboardScreen({
   const sessionId = Cookies.get('feissari_session');
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-emerald-50 to-green-100 dark:from-gray-900 dark:to-emerald-950 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-orange-50 to-orange-100 dark:from-gray-900 dark:to-orange-950 p-4">
       <div className="w-full max-w-4xl space-y-6">
         {/* Header with score (only if previous game exists) */}
         {(score !== undefined && defeatedFeissari !== undefined && finalBalance !== undefined) && (
           <div className="rounded-lg bg-white p-8 shadow-2xl dark:bg-gray-800">
-            <h1 className="text-5xl font-bold text-emerald-800 dark:text-emerald-400 mb-4 text-center">
+            <h1 className="text-5xl font-bold text-primary mb-4 text-center">
               🏆 Your Last Game!
             </h1>
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Score</p>
-                <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{score}</p>
+                <p className="text-3xl font-bold text-primary">{score}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Feissari Defeated</p>
-                <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{defeatedFeissari}</p>
+                <p className="text-3xl font-bold text-primary">{defeatedFeissari}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Final Balance</p>
-                <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">€{finalBalance}</p>
+                <p className="text-3xl font-bold text-primary">€{finalBalance}</p>
               </div>
             </div>
           </div>
@@ -102,9 +102,9 @@ export default function LeaderboardScreen({
         {isLoading && (
           <div className="rounded-lg bg-white p-8 shadow-2xl dark:bg-gray-800 text-center">
             <div className="flex justify-center space-x-2">
-              <div className="w-3 h-3 bg-emerald-600 rounded-full animate-bounce"></div>
-              <div className="w-3 h-3 bg-emerald-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-              <div className="w-3 h-3 bg-emerald-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              <div className="w-3 h-3 bg-primary rounded-full animate-bounce"></div>
+              <div className="w-3 h-3 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+              <div className="w-3 h-3 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
             </div>
             <p className="mt-4 text-gray-600 dark:text-gray-400">Loading leaderboard...</p>
           </div>
@@ -130,7 +130,7 @@ export default function LeaderboardScreen({
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">💸 Meme Token Churn™</p>
-                    <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{stats.tokenChurn}</p>
+                    <p className="text-2xl font-bold text-primary">{stats.tokenChurn}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-500 italic">*Totally accurate AI costs</p>
                   </div>
                 </div>
@@ -140,7 +140,7 @@ export default function LeaderboardScreen({
             {/* Top 10 All-Time */}
             {topLeaderboard && (
               <div className="rounded-lg bg-white p-6 shadow-2xl dark:bg-gray-800">
-                <h2 className="text-2xl font-bold text-emerald-800 dark:text-emerald-400 mb-4">
+                <h2 className="text-2xl font-bold text-primary mb-4">
                   🌟 Top 10 All-Time High Scores
                 </h2>
                 <div className="space-y-2">
@@ -149,11 +149,10 @@ export default function LeaderboardScreen({
                     return (
                       <div
                         key={index}
-                        className={`flex justify-between items-center p-3 rounded ${
-                          isCurrentUser
-                            ? 'bg-emerald-100 dark:bg-emerald-900 border-2 border-emerald-500'
+                        className={`flex justify-between items-center p-3 rounded ${isCurrentUser
+                            ? 'bg-orange-100 dark:bg-orange-900 border-2 border-primary'
                             : 'bg-gray-50 dark:bg-gray-700'
-                        }`}
+                          }`}
                       >
                         <div className="flex items-center gap-3">
                           <span className="font-bold text-lg w-8">{entry.rank}.</span>
@@ -169,12 +168,12 @@ export default function LeaderboardScreen({
                     );
                   })}
                 </div>
-                
+
                 {/* Show current user if not in top 10 */}
                 {topLeaderboard.currentUserEntry && !topLeaderboard.entries.find(e => e.userId === sessionId) && (
                   <>
                     <div className="my-4 border-t border-gray-300 dark:border-gray-600"></div>
-                    <div className="bg-emerald-100 dark:bg-emerald-900 border-2 border-emerald-500 p-3 rounded">
+                    <div className="bg-orange-100 dark:bg-orange-900 border-2 border-primary p-3 rounded">
                       <div className="flex justify-between items-center">
                         <div className="flex items-center gap-3">
                           <span className="font-bold text-lg w-8">#{topLeaderboard.currentUserRank}</span>
@@ -196,7 +195,7 @@ export default function LeaderboardScreen({
             {/* Recent 10 */}
             {recentLeaderboard && (
               <div className="rounded-lg bg-white p-6 shadow-2xl dark:bg-gray-800">
-                <h2 className="text-2xl font-bold text-emerald-800 dark:text-emerald-400 mb-4">
+                <h2 className="text-2xl font-bold text-primary mb-4">
                   🕒 10 Most Recent Games
                 </h2>
                 <div className="space-y-2">
@@ -205,11 +204,10 @@ export default function LeaderboardScreen({
                     return (
                       <div
                         key={index}
-                        className={`flex justify-between items-center p-3 rounded ${
-                          isCurrentUser
-                            ? 'bg-emerald-100 dark:bg-emerald-900 border-2 border-emerald-500'
+                        className={`flex justify-between items-center p-3 rounded ${isCurrentUser
+                            ? 'bg-orange-100 dark:bg-orange-900 border-2 border-primary'
                             : 'bg-gray-50 dark:bg-gray-700'
-                        }`}
+                          }`}
                       >
                         <div className="flex items-center gap-3">
                           <span className="font-bold text-lg w-8">{index + 1}.</span>
@@ -225,12 +223,12 @@ export default function LeaderboardScreen({
                     );
                   })}
                 </div>
-                
+
                 {/* Show current user if not in recent 10 */}
                 {recentLeaderboard.currentUserEntry && !recentLeaderboard.entries.find(e => e.userId === sessionId) && (
                   <>
                     <div className="my-4 border-t border-gray-300 dark:border-gray-600"></div>
-                    <div className="bg-emerald-100 dark:bg-emerald-900 border-2 border-emerald-500 p-3 rounded">
+                    <div className="bg-orange-100 dark:bg-orange-900 border-2 border-primary p-3 rounded">
                       <div className="flex justify-between items-center">
                         <div className="flex items-center gap-3">
                           <span className="font-bold text-lg w-8">#{recentLeaderboard.currentUserPosition}</span>
@@ -278,7 +276,7 @@ function NewGameButton({ onNewGame }: { onNewGame?: () => void }) {
   return (
     <Button
       onClick={handle}
-      className="w-full max-w-md h-14 text-lg font-semibold bg-emerald-600 hover:bg-emerald-700"
+      className="w-full max-w-md h-14 text-lg font-semibold bg-primary hover:bg-primary/90"
       size="lg"
     >
       🎮 Play New Game
