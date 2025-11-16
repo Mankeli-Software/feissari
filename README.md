@@ -101,18 +101,6 @@ The frontend will run on `http://localhost:3000`
 3. Enter your name to begin
 4. Try to survive 3 minutes without losing all your money!
 
-## Game Characters (Feissarit)
-
-The game includes 5 unique AI-powered salespeople:
-
-1. **Matti Myyjä** - Enthusiastic vacuum cleaner salesman
-2. **Sanna Sähköinen** - Smooth-talking electricity contract seller
-3. **Pekka Puhelin** - Persistent magazine subscription telemarketer
-4. **Tiina Terveys** - Wellness product salesperson with pseudo-science
-5. **Jukka Jäsen** - Energetic gym membership seller
-
-Each character has unique personality traits, sales tactics, and product offerings.
-
 ## API Documentation
 
 See [backend/README.md](backend/README.md) for detailed API documentation.
@@ -142,10 +130,6 @@ cd frontend
 npm run build
 npm start
 ```
-
-## Architecture
-
-For detailed architecture, database schema, and implementation details, see [requirements.md](requirements.md).
 
 ## License
 
