@@ -25,6 +25,8 @@ jobs:
               run: npm ci
 
             - name: Build Next.js app
+              env:
+                  NEXT_PUBLIC_BACKEND_URL: ${{ secrets.NEXT_PUBLIC_BACKEND_URL }}
               run: npm run build
 
             - name: Authenticate to Google Cloud
