@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation'
 import { useGame, EmoteImage } from '@/lib/game-context';
+import ThreatStars from '@/components/threat-stars';
 import type { GameState, ChatMessage } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -285,6 +286,12 @@ export default function GameScreen() {
                     : 'text-primary'
                   }`}>
                   €{gameState.balance}
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-sm text-gray-600 dark:text-gray-400">Threat</p>
+                <p className="text-2xl font-bold leading-[2rem] h-8 flex items-center justify-center">
+                  <ThreatStars className="align-middle" level={gameState.threatLevel ?? 0} size={20} />
                 </p>
               </div>
               <div className="text-center">

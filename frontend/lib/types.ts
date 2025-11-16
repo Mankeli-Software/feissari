@@ -14,6 +14,7 @@ export interface UpdateGameResponse {
   score?: number;
   defeatedFeissari?: number;
   quickActions: string[];
+  threatLevel?: number; // 0-5 threat level indicator from backend
 }
 
 export interface ChatMessage {
@@ -25,6 +26,7 @@ export interface ChatMessage {
   balance?: number;
   goToNext?: boolean;  // Indicates if this message caused moving to next feissari
   quickActions?: string[]; // Optional quick action labels suggested by AI
+  threatLevel?: number; // 0-5 threat level value attached to this message
 }
 
 export interface GameState {
@@ -39,6 +41,7 @@ export interface GameState {
   isTransitioning?: boolean;
   score?: number;
   defeatedFeissari?: number;
+  threatLevel?: number; // current threat level 0-5 shown in UI
 }
 
 export interface LeaderboardEntryResponse {
@@ -47,6 +50,7 @@ export interface LeaderboardEntryResponse {
   score: number;
   defeatedFeissari: number;
   finalBalance: number;
+  threatLevel: number;
   createdAt: string;
   rank?: number;
 }

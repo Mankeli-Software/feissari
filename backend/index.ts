@@ -129,12 +129,12 @@ async function calculateDefeatedFeissari(gameId: string): Promise<number> {
 /**
  * Helper function to calculate score and game stats
  */
-async function calculateGameScore(gameId: string, finalBalance: number, threatLevel: number): Promise<{ score: number; defeatedFeissari: number }> {
+async function calculateGameScore(gameId: string, finalBalance: number, threatLevel: number): Promise<{ score: number; defeatedFeissari: number; threatLevel: number }> {
   const defeatedFeissari = await calculateDefeatedFeissari(gameId);
   const threatLevelMultiplier = MAX_THREAT_LEVEL - threatLevel;
   const score = defeatedFeissari * finalBalance * threatLevelMultiplier;
   console.log(`Game Score Calculation: gameId=${gameId}, finalBalance=${finalBalance}, defeatedFeissari=${defeatedFeissari}, threatLevelMultiplier=${threatLevelMultiplier}, score=${score}`);
-  return { score: score || 0, defeatedFeissari: defeatedFeissari || 0 };
+  return { score: score || 0, defeatedFeissari: defeatedFeissari || 0, threatLevel: threatLevel };
 }
 
 /**
@@ -171,6 +171,7 @@ app.get('/api/leaderboard/last-game', async (req: Request, res: Response) => {
       score: data.score,
       defeatedFeissari: data.defeatedFeissari,
       finalBalance: data.finalBalance,
+      threatLevel: data.threatLevel || 0,
       createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
     });
   } catch (error) {
@@ -433,7 +434,7 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
       console.log(`Time expired for game ${gameId}. Latest chat empty: ${latestChatSnapshot.empty}, finalBalance: ${finalBalance}`);
 
       // Calculate score and defeated feissari
-      const { score, defeatedFeissari } = await calculateGameScore(gameId, finalBalance, currentThreatLevel);
+      const { score, defeatedFeissari, threatLevel } = await calculateGameScore(gameId, finalBalance, currentThreatLevel);
 
       console.log(`Calculated score for game ${gameId}: defeatedFeissari=${defeatedFeissari}, finalBalance=${finalBalance}, score=${score}`);
 
@@ -457,6 +458,7 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
             score: score,
             defeatedFeissari: defeatedFeissari,
             finalBalance: finalBalance,
+            threatLevel: threatLevel,
             createdAt: admin.firestore.FieldValue.serverTimestamp()
           };
 
@@ -504,7 +506,7 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
       await gameRef.update({ isActive: false });
 
       // Calculate score and defeated feissari
-      const { score, defeatedFeissari } = await calculateGameScore(gameId, 0, currentThreatLevel);
+      const { score, defeatedFeissari, threatLevel } = await calculateGameScore(gameId, 0, currentThreatLevel);
 
       // Save to leaderboard
       try {
@@ -526,6 +528,7 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
             score: score,
             defeatedFeissari: defeatedFeissari,
             finalBalance: 0,
+            threatLevel: threatLevel,
             createdAt: admin.firestore.FieldValue.serverTimestamp()
           };
 
@@ -748,6 +751,7 @@ app.put('/api/game/:gameId', async (req: Request, res: Response) => {
             score: score || 0,
             defeatedFeissari: defeatedFeissari,
             finalBalance: llmResponse.balance,
+            threatLevel: newThreatLevel,
             createdAt: admin.firestore.FieldValue.serverTimestamp()
           };
 
@@ -850,7 +854,7 @@ app.post('/api/leaderboard', async (req: Request, res: Response) => {
       : game.threatLevel;
 
     // Calculate score and defeated feissari
-    const { score, defeatedFeissari } = await calculateGameScore(gameId, finalBalance, currentThreatLevel);
+    const { score, defeatedFeissari, threatLevel } = await calculateGameScore(gameId, finalBalance, currentThreatLevel);
 
     // Check if entry already exists for this game
     const existingEntrySnapshot = await firestore
@@ -866,7 +870,8 @@ app.post('/api/leaderboard', async (req: Request, res: Response) => {
         entryId: existingEntry.id,
         score: score,
         defeatedFeissari: defeatedFeissari,
-        finalBalance: finalBalance
+        finalBalance: finalBalance,
+        threatLevel: threatLevel
       };
       return res.status(200).json(response);
     }
@@ -880,6 +885,7 @@ app.post('/api/leaderboard', async (req: Request, res: Response) => {
       score: score,
       defeatedFeissari: defeatedFeissari,
       finalBalance: finalBalance,
+      threatLevel: threatLevel,
       createdAt: admin.firestore.FieldValue.serverTimestamp() as admin.firestore.Timestamp
     };
 
@@ -889,7 +895,8 @@ app.post('/api/leaderboard', async (req: Request, res: Response) => {
       entryId: leaderboardRef.id,
       score: score,
       defeatedFeissari: defeatedFeissari,
-      finalBalance: finalBalance
+      finalBalance: finalBalance,
+      threatLevel: threatLevel
     };
 
     return res.status(201).json(response);
@@ -933,6 +940,7 @@ app.get('/api/leaderboard/top', async (req: Request, res: Response) => {
         score: data.score,
         defeatedFeissari: data.defeatedFeissari,
         finalBalance: data.finalBalance,
+        threatLevel: data.threatLevel || 0,
         createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
         rank: index + 1
       };
@@ -964,6 +972,7 @@ app.get('/api/leaderboard/top', async (req: Request, res: Response) => {
             score: data.score,
             defeatedFeissari: data.defeatedFeissari,
             finalBalance: data.finalBalance,
+            threatLevel: data.threatLevel || 0,
             createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
           };
 
@@ -1025,6 +1034,7 @@ app.get('/api/leaderboard/recent', async (req: Request, res: Response) => {
         score: data.score,
         defeatedFeissari: data.defeatedFeissari,
         finalBalance: data.finalBalance,
+        threatLevel: data.threatLevel || 0,
         createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
         rank: index + 1
       };
@@ -1058,6 +1068,7 @@ app.get('/api/leaderboard/recent', async (req: Request, res: Response) => {
             score: data.score,
             defeatedFeissari: data.defeatedFeissari,
             finalBalance: data.finalBalance,
+            threatLevel: data.threatLevel || 0,
             createdAt: userCreatedAt.toISOString()
           };
 

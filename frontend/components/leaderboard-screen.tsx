@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { ThreatStars } from '@/components/threat-stars';
 import Cookies from 'js-cookie';
 import {
   TopLeaderboardResponse,
@@ -76,7 +77,7 @@ export default function LeaderboardScreen({
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-orange-50 to-orange-100 dark:from-gray-900 dark:to-orange-950 p-4">
-      <div className="w-full max-w-4xl space-y-6">
+      <div className="w-full max-w-6xl space-y-6">
         {/* Header with score (only if previous game exists) */}
         {hasLastGame && (
           <>
@@ -150,10 +151,10 @@ export default function LeaderboardScreen({
                             <span className="font-bold text-lg w-8">{entry.rank}.</span>
                             <span className={isCurrentUser ? 'font-bold' : ''}>{entry.userName}</span>
                           </div>
-                          <div className="flex gap-4 text-xs md:text-sm">
+                          <div className="flex gap-4 text-xs md:text-sm items-center">
                             <span className="font-semibold">Score: {entry.score}</span>
                             <span className="text-gray-600 dark:text-gray-400">
-                              {entry.defeatedFeissari} × €{entry.finalBalance}
+                              {entry.defeatedFeissari} × €{entry.finalBalance} × <ThreatStars level={entry.threatLevel} size={8} className="inline-flex" />
                             </span>
                           </div>
                         </div>
@@ -169,10 +170,10 @@ export default function LeaderboardScreen({
                             <span className="font-bold text-lg w-8">#{topLeaderboard.currentUserRank}</span>
                             <span className="font-bold">{topLeaderboard.currentUserEntry.userName} (You)</span>
                           </div>
-                          <div className="flex gap-4 text-xs md:text-sm">
+                          <div className="flex gap-4 text-xs md:text-sm items-center">
                             <span className="font-semibold">Score: {topLeaderboard.currentUserEntry.score}</span>
                             <span className="text-gray-600 dark:text-gray-400">
-                              {topLeaderboard.currentUserEntry.defeatedFeissari} × €{topLeaderboard.currentUserEntry.finalBalance}
+                              {topLeaderboard.currentUserEntry.defeatedFeissari} × €{topLeaderboard.currentUserEntry.finalBalance} × <ThreatStars level={topLeaderboard.currentUserEntry.threatLevel} size={8} className="inline-flex" />
                             </span>
                           </div>
                         </div>
@@ -201,10 +202,10 @@ export default function LeaderboardScreen({
                             <span className="font-bold text-lg w-8">{index + 1}.</span>
                             <span className={isCurrentUser ? 'font-bold' : ''}>{entry.userName}</span>
                           </div>
-                          <div className="flex gap-4 text-xs md:text-sm">
+                          <div className="flex gap-4 text-xs md:text-sm items-center">
                             <span className="font-semibold">Score: {entry.score}</span>
                             <span className="text-gray-600 dark:text-gray-400">
-                              {entry.defeatedFeissari} × €{entry.finalBalance}
+                              {entry.defeatedFeissari} × €{entry.finalBalance} × <ThreatStars level={entry.threatLevel} size={8} className="inline-flex" />
                             </span>
                           </div>
                         </div>
@@ -223,10 +224,10 @@ export default function LeaderboardScreen({
                               {recentLeaderboard.currentUserPosition! - 1} more recent
                             </span>
                           </div>
-                          <div className="flex gap-4 text-xs md:text-sm">
+                          <div className="flex gap-4 text-xs md:text-sm items-center">
                             <span className="font-semibold">Score: {recentLeaderboard.currentUserEntry.score}</span>
                             <span className="text-gray-600 dark:text-gray-400">
-                              {recentLeaderboard.currentUserEntry.defeatedFeissari} × €{recentLeaderboard.currentUserEntry.finalBalance}
+                              {recentLeaderboard.currentUserEntry.defeatedFeissari} × €{recentLeaderboard.currentUserEntry.finalBalance} × <ThreatStars level={recentLeaderboard.currentUserEntry.threatLevel} size={8} className="inline-flex" />
                             </span>
                           </div>
                         </div>

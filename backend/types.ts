@@ -101,6 +101,7 @@ export interface LeaderboardEntry {
   score: number;                   // Score: defeatedFeissari * finalBalance
   defeatedFeissari: number;        // Number of feissari defeated
   finalBalance: number;            // Final balance when game ended
+  threatLevel: number;             // Threat level when game ended (0-5)
   createdAt: Timestamp;            // When the entry was created
 }
 
@@ -117,6 +118,7 @@ export interface CreateLeaderboardResponse {
   score: number;
   defeatedFeissari: number;
   finalBalance: number;
+  threatLevel: number;
 }
 
 export interface LeaderboardEntryResponse {
@@ -125,6 +127,7 @@ export interface LeaderboardEntryResponse {
   score: number;
   defeatedFeissari: number;
   finalBalance: number;
+  threatLevel: number;
   createdAt: string;
   rank?: number;                   // Position in leaderboard (1-indexed)
 }

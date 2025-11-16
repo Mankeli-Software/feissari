@@ -27,6 +27,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     currentFeissariName: '',
     isLoading: false,
     isTransitioning: false,
+    threatLevel: 0,
   });
 
   const [startTime, setStartTime] = useState<number | null>(null);
@@ -90,7 +91,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         throw new Error('Failed to create game');
       }
 
-      const data: CreateGameResponse = await response.json();
+  const data: CreateGameResponse = await response.json();
       
       setGameState(prev => ({
         ...prev,
@@ -101,6 +102,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         messages: [],
         isLoading: true,
         isTransitioning: false,
+        threatLevel: 0,
       }));
 
       setStartTime(Date.now());
@@ -138,6 +140,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         balance: data.balance,
         goToNext: data.goToNext,
         quickActions: data.quickActions,
+        threatLevel: data.threatLevel,
       };
 
       setGameState(prev => ({
@@ -150,6 +153,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         defeatedFeissari: data.defeatedFeissari,
         isLoading: false,
         isTransitioning: false,
+        threatLevel: data.threatLevel ?? prev.threatLevel ?? 0,
       }));
     } catch (error) {
       console.error('Error getting initial message:', error);
@@ -195,6 +199,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         balance: data.balance,
         goToNext: data.goToNext,
         quickActions: data.quickActions,
+        threatLevel: data.threatLevel,
       };
 
       setGameState(prev => ({
@@ -207,6 +212,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         isLoading: false,
         score: data.score,
         defeatedFeissari: data.defeatedFeissari,
+        threatLevel: data.threatLevel ?? prev.threatLevel ?? 0,
       }));
 
       // If moving to next feissari, wait 3s, then start transition animation and fetch next greeting
@@ -255,6 +261,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         balance: data.balance,
         goToNext: false, // Next feissari is just starting
         quickActions: data.quickActions,
+        threatLevel: data.threatLevel,
       };
 
       setGameState(prev => ({
@@ -267,6 +274,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         isTransitioning: false, // stop background animation when new feissari has loaded
         score: data.score,
         defeatedFeissari: data.defeatedFeissari,
+        threatLevel: data.threatLevel ?? prev.threatLevel ?? 0,
       }));
     } catch (error) {
       console.error('Error fetching next feissari greeting:', error);
@@ -283,6 +291,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       messages: [],
       currentFeissariName: '',
       isLoading: false,
+      threatLevel: 0,
     });
     setStartTime(null);
   }, []);
