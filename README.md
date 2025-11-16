@@ -2,6 +2,8 @@
 
 A Finnish face-to-face salesperson (feissari) simulator game where you compete against LLM-powered salesperson characters. Can you survive 3 minutes without losing all your money?
 
+Play at [feissari.fi](https://feissari.fi)
+
 ## Game Concept
 
 - **Starting Budget**: €100 per player
@@ -62,12 +64,7 @@ cp .env.example .env
 # Edit .env with your Firebase and Gemini API credentials
 ```
 
-3. Seed the database with feissari characters:
-```bash
-npm run seed
-```
-
-4. Start the backend server:
+3. Start the backend server:
 ```bash
 npm run dev
 ```
