@@ -8,6 +8,7 @@ import type { GameState, ChatMessage } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Cookies from 'js-cookie';
+import { getVoiceForFeissari, resetVoiceCache } from '@/lib/feissariVoiceCache';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
 
@@ -88,7 +89,11 @@ export default function GameScreen() {
 
   // Video background ref is kept in a component below; expose it here if needed later
   const router = useRouter()
+  // Background music player (loops while game is active)
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [inputMessage, setInputMessage] = useState('');
+  // Ref for feissari speech audio
+  const feissariAudioRef = useRef<HTMLAudioElement | null>(null);
   const [prevScore, setPrevScore] = useState<number>(0);
   const [animatingScore, setAnimatingScore] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -97,6 +102,21 @@ export default function GameScreen() {
   const [showFeissariBubble, setShowFeissariBubble] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const prevIsLoadingRef = useRef<boolean>(false);
+
+  // Start game + kick off background audio from a user gesture to satisfy autoplay policies
+  const handleStartGame = async () => {
+    const a = audioRef.current;
+    if (a) {
+      try {
+        a.loop = true;
+        a.volume = 0.25; // keep it subtle
+        await a.play();
+      } catch (_) {
+        // ignore autoplay errors; we'll try again in the effect below
+      }
+    }
+    await startGame();
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -174,6 +194,30 @@ export default function GameScreen() {
     }
   }, [gameState.isActive, gameState.messages.length, gameState.gameId, gameState.score, gameState.defeatedFeissari, gameState.balance, router]);
 
+  // Manage background music playback according to game activity
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a) return;
+
+    if (gameState.isActive) {
+      // Try to play (in case it didn't start from a gesture)
+      a.loop = true;
+      a.volume = 0.25;
+      a.play().catch(() => { /* noop */ });
+    } else {
+      try {
+        a.pause();
+        a.currentTime = 0;
+      } catch (_) { /* noop */ }
+    }
+
+    return () => {
+      try {
+        a.pause();
+      } catch (_) { /* noop */ }
+    };
+  }, [gameState.isActive]);
+
   // Ensure the input is focused when it's the user's turn to reply (new AI response)
   useEffect(() => {
     // Focus only during active gameplay and when not loading
@@ -211,10 +255,29 @@ export default function GameScreen() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Play feissari voice when a new AI message is received
+  useEffect(() => {
+    // Find the last AI message
+    const lastAi = [...gameState.messages].reverse().find((m) => m.sender === 'ai');
+    if (!lastAi || !lastAi.feissariName || !lastAi.message) return;
+    // Only play if this is a new message (track by message content)
+    // Use a ref to store the last played message id/content
+    if (!feissariAudioRef.current) return;
+    if ((feissariAudioRef.current as any)._lastPlayedMessage === lastAi.message) return;
+    (feissariAudioRef.current as any)._lastPlayedMessage = lastAi.message;
+    // Get the assigned voice for this feissari
+    const voiceFile = getVoiceForFeissari(lastAi.feissariName);
+    feissariAudioRef.current.src = `/audio/${voiceFile}`;
+    feissariAudioRef.current.currentTime = 0;
+    feissariAudioRef.current.play().catch(() => {});
+  }, [gameState.messages]);
+
   // Show start screen if game hasn't started
   if (!gameState.isActive && gameState.messages.length === 0) {
     return (
       <div className="flex min-h-screen items-center justify-center relative">
+        {/* Hidden audio element for background music */}
+        <audio ref={audioRef} src="/audio/metrobackgroundsound.mp3" loop preload="auto" aria-hidden className="hidden" />
         <VideoBackground isLoading={gameState.isLoading} messages={gameState.messages} isActive={gameState.isActive} isTransitioning={!!gameState.isTransitioning} />
         <div className="w-full max-w-md space-y-8 rounded-lg bg-white p-10 shadow-2xl dark:bg-gray-800 relative z-10">
           <div className="text-center">
@@ -236,7 +299,7 @@ export default function GameScreen() {
           </div>
 
           <Button
-            onClick={startGame}
+            onClick={handleStartGame}
             disabled={gameState.isLoading}
             className="w-full h-14 text-lg font-semibold bg-primary hover:bg-primary/90"
             size="lg"
@@ -252,6 +315,8 @@ export default function GameScreen() {
   if (!gameState.isActive && gameState.messages.length > 0) {
     return (
       <div className="flex min-h-screen items-center justify-center relative">
+        {/* Hidden audio element for background music */}
+        <audio ref={audioRef} src="/audio/metrobackgroundsound.mp3" loop preload="auto" aria-hidden className="hidden" />
         <VideoBackground isLoading={gameState.isLoading} messages={gameState.messages} isActive={gameState.isActive} isTransitioning={!!gameState.isTransitioning} />
         <div className="w-full max-w-sm space-y-4 rounded-lg bg-white p-8 shadow-2xl dark:bg-gray-800 text-center relative z-10">
           <p className="text-lg text-gray-700 dark:text-gray-300">Saving your result and redirecting to leaderboard...</p>
@@ -266,6 +331,10 @@ export default function GameScreen() {
   // Active game screen
   return (
     <div className="relative">
+      {/* Hidden audio element for background music */}
+      <audio ref={audioRef} src="/audio/metrobackgroundsound.mp3" loop preload="auto" aria-hidden className="hidden" />
+      {/* Hidden audio element for feissari speech */}
+      <audio ref={feissariAudioRef} preload="auto" aria-hidden className="hidden" />
       <VideoBackground isLoading={gameState.isLoading} messages={gameState.messages} isActive={gameState.isActive} isTransitioning={!!gameState.isTransitioning} />
       <div className="flex flex-col h-screen relative z-10">
         {/* Header with stats */}
