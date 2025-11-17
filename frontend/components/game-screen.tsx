@@ -325,21 +325,21 @@ export default function GameScreen() {
   // Show start screen if game hasn't started
   if (!gameState.isActive && gameState.messages.length === 0) {
     return (
-      <div className="flex min-h-screen items-center justify-center relative">
+      <div className="flex min-h-screen items-center justify-center relative p-4">
         {/* Hidden audio element for background music */}
         <audio ref={audioRef} src="/audio/metrobackgroundsound.mp3" loop preload="auto" aria-hidden className="hidden" />
         <VideoBackground isLoading={gameState.isLoading} messages={gameState.messages} isActive={gameState.isActive} isTransitioning={!!gameState.isTransitioning} stepsAudioRef={stepsAudioRef} isMuted={isMuted} />
-        <div className="w-full max-w-md space-y-8 rounded-lg bg-white p-10 shadow-2xl dark:bg-gray-800 relative z-10">
+        <div className="w-full max-w-md space-y-6 sm:space-y-8 rounded-lg bg-white p-6 sm:p-10 shadow-2xl dark:bg-gray-800 relative z-10">
           <div className="text-center">
-            <h1 className="text-5xl font-bold text-primary mb-4">
+            <h1 className="text-3xl sm:text-5xl font-bold text-primary mb-3 sm:mb-4">
               Survive the Feissari
             </h1>
-            <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
+            <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 mb-4 sm:mb-6">
               Can you uncover the characters' weaknesses, or will you resort to using force?
             </p>
-            <div className="space-y-4 text-left bg-secondary dark:bg-gray-900 p-6 rounded-lg">
-              <h2 className="font-bold text-xl text-primary">Game Rules:</h2>
-              <ul className="space-y-2 text-gray-700 dark:text-gray-300">
+            <div className="space-y-3 sm:space-y-4 text-left bg-secondary dark:bg-gray-900 p-4 sm:p-6 rounded-lg">
+              <h2 className="font-bold text-lg sm:text-xl text-primary">Game Rules:</h2>
+              <ul className="space-y-2 text-sm sm:text-base text-gray-700 dark:text-gray-300">
                 <li>💰 Starting balance: €{gameState.balance}</li>
                 <li>⏱️ Time limit: 3 minutes</li>
                 <li>🎯 Goal: Don't let them sell you anything!</li>
@@ -351,7 +351,7 @@ export default function GameScreen() {
           <Button
             onClick={handleStartGame}
             disabled={gameState.isLoading}
-            className="w-full h-14 text-lg font-semibold bg-primary hover:bg-primary/90"
+            className="w-full h-12 sm:h-14 text-base sm:text-lg font-semibold bg-primary hover:bg-primary/90"
             size="lg"
           >
             {gameState.isLoading ? "Starting Game..." : "Start Game"}
@@ -364,12 +364,12 @@ export default function GameScreen() {
   // Game over: we redirect immediately to leaderboard. Show a minimal redirecting indicator
   if (!gameState.isActive && gameState.messages.length > 0) {
     return (
-      <div className="flex min-h-screen items-center justify-center relative">
+      <div className="flex min-h-screen items-center justify-center relative p-4">
         {/* Hidden audio element for background music */}
         <audio ref={audioRef} src="/audio/metrobackgroundsound.mp3" loop preload="auto" aria-hidden className="hidden" />
         <VideoBackground isLoading={gameState.isLoading} messages={gameState.messages} isActive={gameState.isActive} isTransitioning={!!gameState.isTransitioning} stepsAudioRef={stepsAudioRef} isMuted={isMuted} />
-        <div className="w-full max-w-sm space-y-4 rounded-lg bg-white p-8 shadow-2xl dark:bg-gray-800 text-center relative z-10">
-          <p className="text-lg text-gray-700 dark:text-gray-300">Saving your result and redirecting to leaderboard...</p>
+        <div className="w-full max-w-sm space-y-4 rounded-lg bg-white p-6 sm:p-8 shadow-2xl dark:bg-gray-800 text-center relative z-10">
+          <p className="text-base sm:text-lg text-gray-700 dark:text-gray-300">Saving your result and redirecting to leaderboard...</p>
           <div className="flex justify-center mt-4">
             <div className="w-6 h-6 border-4 border-primary border-dashed rounded-full animate-spin"></div>
           </div>
@@ -388,69 +388,70 @@ export default function GameScreen() {
       <VideoBackground isLoading={gameState.isLoading} messages={gameState.messages} isActive={gameState.isActive} isTransitioning={!!gameState.isTransitioning} stepsAudioRef={stepsAudioRef} isMuted={isMuted} />
       <div className="flex flex-col h-screen relative z-10">
         {/* Header with stats */}
-        <div className="bg-white dark:bg-gray-800 shadow-lg p-4">
-          <div className="max-w-4xl mx-auto flex justify-between items-center">
-            <div className="flex items-center gap-6">
-              <div className="text-center">
-                <p className="text-sm text-gray-600 dark:text-gray-400">Score</p>
-                <p className={`text-2xl font-bold text-primary transition-all duration-300 ${animatingScore ? 'scale-125' : 'scale-100'
-                  }`}>
-                  {currentScore}
-                </p>
-              </div>
-              <div className="text-center">
-                <p className="text-sm text-gray-600 dark:text-gray-400">Balance</p>
-                <p className={`text-2xl font-bold ${gameState.balance < 30
-                    ? 'text-red-600 dark:text-red-400'
-                    : 'text-primary'
-                  }`}>
-                  €{gameState.balance}
-                </p>
-              </div>
-              <div className="text-center">
-                <p className="text-sm text-gray-600 dark:text-gray-400">Threat</p>
-                <p className="text-2xl font-bold leading-[2rem] h-8 flex items-center justify-center">
-                  <ThreatStars className="align-middle" level={gameState.threatLevel ?? 0} size={20} />
-                </p>
-              </div>
-              <div className="text-center">
-                <p className="text-sm text-gray-600 dark:text-gray-400">Defeated</p>
-                <p className="text-2xl font-bold text-gray-800 dark:text-gray-200">
-                  {gameState.defeatedFeissari || 0}
-                </p>
-              </div>
-              <div className="text-center">
-                <p className="text-sm text-gray-600 dark:text-gray-400">Time</p>
-                <p className={`text-2xl font-bold ${gameState.timeRemaining < 30
-                    ? 'text-red-600 dark:text-red-400'
-                    : 'text-gray-800 dark:text-gray-200'
-                  }`}>
-                  {formatTime(gameState.timeRemaining)}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              {gameState.currentFeissariName && (
-                <div className="text-right">
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Talking to</p>
-                  <p className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-                    {gameState.currentFeissariName}
+        <div className="bg-white dark:bg-gray-800 shadow-lg p-1.5 sm:p-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex flex-wrap justify-between items-center gap-1.5 sm:gap-6">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-6">
+                <div className="text-center">
+                  <p className="text-[10px] leading-tight sm:text-sm text-gray-600 dark:text-gray-400">Score</p>
+                  <p className={`text-sm sm:text-2xl font-bold text-primary transition-all duration-300 ${animatingScore ? 'scale-125' : 'scale-100'
+                    }`}>
+                    {currentScore}
                   </p>
                 </div>
-              )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={toggleMute}
-                className="p-2 h-10 w-10"
-                title={isMuted ? "Unmute sound" : "Mute sound"}
-              >
+                <div className="text-center">
+                  <p className="text-[10px] leading-tight sm:text-sm text-gray-600 dark:text-gray-400">Balance</p>
+                  <p className={`text-sm sm:text-2xl font-bold ${gameState.balance < 30
+                      ? 'text-red-600 dark:text-red-400'
+                      : 'text-primary'
+                    }`}>
+                    €{gameState.balance}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] leading-tight sm:text-sm text-gray-600 dark:text-gray-400">Threat</p>
+                  <p className="text-sm sm:text-2xl font-bold leading-tight h-5 sm:h-8 flex items-center justify-center">
+                    <ThreatStars className="align-middle" level={gameState.threatLevel ?? 0} size={14} />
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] leading-tight sm:text-sm text-gray-600 dark:text-gray-400">Defeated</p>
+                  <p className="text-sm sm:text-2xl font-bold text-gray-800 dark:text-gray-200">
+                    {gameState.defeatedFeissari || 0}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] leading-tight sm:text-sm text-gray-600 dark:text-gray-400">Time</p>
+                  <p className={`text-sm sm:text-2xl font-bold ${gameState.timeRemaining < 30
+                      ? 'text-red-600 dark:text-red-400'
+                      : 'text-gray-800 dark:text-gray-200'
+                    }`}>
+                    {formatTime(gameState.timeRemaining)}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 sm:gap-4">
+                {gameState.currentFeissariName && (
+                  <div className="text-right">
+                    <p className="text-[10px] leading-tight sm:text-sm text-gray-600 dark:text-gray-400">Talking to</p>
+                    <p className="text-xs sm:text-lg font-semibold text-gray-800 dark:text-gray-200">
+                      {gameState.currentFeissariName}
+                    </p>
+                  </div>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={toggleMute}
+                  className="p-1.5 h-7 w-7 sm:h-10 sm:w-10"
+                  title={isMuted ? "Unmute sound" : "Mute sound"}
+                >
                 {isMuted ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3.5 h-3.5 sm:w-5 sm:h-5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 9.75L19.5 12m0 0l2.25 2.25M19.5 12l2.25-2.25M19.5 12l-2.25 2.25m-10.5-6l4.72-4.72a.75.75 0 011.28.531V19.94a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.506-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.395C2.806 8.757 3.63 8.25 4.51 8.25H6.75z" />
                   </svg>
                 ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3.5 h-3.5 sm:w-5 sm:h-5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
                   </svg>
                 )}
@@ -458,12 +459,13 @@ export default function GameScreen() {
             </div>
           </div>
         </div>
+        </div>
 
         {/* Focused chat UI: only newest feissari message and newest own message */}
         <div className="flex-1 relative">
           {/* Feissari emote + bubble centered X, 1/3 from bottom Y */}
           {gameState.currentFeissariName && (
-            <div className="pointer-events-none fixed left-1/2 bottom-[24%] -translate-x-2/3 flex flex-col items-center gap-3 z-10">
+            <div className="pointer-events-none fixed left-[10%] sm:left-1/2 bottom-[24%] sm:-translate-x-2/3 flex flex-col items-center gap-3 z-10 max-w-[80vw] sm:max-w-none">
               {/* Speech bubble appears after emote entrance animation */}
               {showFeissariBubble && (
                 <FeissariBubble gameState={gameState} />
@@ -493,7 +495,7 @@ export default function GameScreen() {
               : false;
             const showUser = isTyping || hasUserAfterLastAi;
             return showUser ? (
-              <div className="pointer-events-none fixed bottom-[20%] right-[15%] z-10">
+              <div className="pointer-events-none fixed bottom-[20%] right-[5%] sm:right-[15%] z-10 max-w-[80vw] sm:max-w-none">
                 <UserBubble gameState={gameState} inputMessage={inputMessage} />
               </div>
             ) : null;
@@ -501,8 +503,7 @@ export default function GameScreen() {
         </div>
 
         {/* Input area */}
-        {/* Input area */}
-        <div className="bg-white dark:bg-gray-800 shadow-lg p-4">
+        <div className="bg-white dark:bg-gray-800 shadow-lg p-2 sm:p-4">
           {/* Quick action buttons above the input field */}
           {(() => {
             const lastAi = [...gameState.messages].reverse().find((m) => m.sender === 'ai');
@@ -510,9 +511,9 @@ export default function GameScreen() {
             const shouldHide = lastAi?.goToNext === true; // hide if moving to next
             if (shouldHide || !actions || actions.length === 0) return null;
             return (
-              <div className="max-w-4xl mx-auto mb-3">
-                <div className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Quick Actions</div>
-                <div className="flex flex-wrap gap-2">
+              <div className="max-w-4xl mx-auto mb-2 sm:mb-3">
+                <div className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1 sm:mb-2">Quick Actions</div>
+                <div className="flex flex-wrap gap-1 sm:gap-2">
                   {actions.map((action, idx) => (
                     <Button
                       key={`${action}-${idx}`}
@@ -527,7 +528,7 @@ export default function GameScreen() {
                         // Return focus to the text input after using a quick action
                         requestAnimationFrame(() => inputRef.current?.focus());
                       }}
-                      className="whitespace-nowrap"
+                      className="whitespace-nowrap text-xs sm:text-sm"
                     >
                       {action}
                     </Button>
@@ -549,13 +550,13 @@ export default function GameScreen() {
                 }
               }}
               disabled={gameState.isLoading}
-              className="flex-1"
+              className="flex-1 text-sm sm:text-base"
               ref={inputRef}
             />
             <Button
               onClick={handleSendMessage}
               disabled={!inputMessage.trim() || gameState.isLoading}
-              className="bg-primary hover:bg-primary/90"
+              className="bg-primary hover:bg-primary/90 text-sm sm:text-base px-3 sm:px-4"
             >
               Send
             </Button>
@@ -577,7 +578,7 @@ function FeissariBubble({ gameState }: { gameState: GameState }) {
 
   return (
     <div className="relative">
-      <div className="max-w-[70vw] sm:max-w-[50vw] bg-white/95 dark:bg-gray-800/95 text-gray-800 dark:text-gray-100 shadow-xl px-4 py-3 rounded-2xl">
+      <div className="w-full max-w-[75vw] sm:max-w-[50vw] bg-white/95 dark:bg-gray-800/95 text-gray-800 dark:text-gray-100 shadow-xl px-4 py-3 rounded-2xl">
         {/* top corners rounded; keep bottom edge straight where tail is */}
         <div className="text-sm sm:text-base whitespace-pre-wrap">
           {showTyping ? (
@@ -600,7 +601,7 @@ function UserBubble({ gameState, inputMessage }: { gameState: GameState; inputMe
 
   // Bubble with bottom-right corner not rounded (toward user position)
   return (
-    <div className="max-w-[40vw] sm:max-w-[35vw] bg-primary/95 text-white px-4 py-3 rounded-tl-2xl rounded-tr-2xl rounded-bl-2xl rounded-br-none shadow-xl">
+    <div className="w-full max-w-[70vw] sm:max-w-[35vw] bg-primary/95 text-white px-4 py-3 rounded-tl-2xl rounded-tr-2xl rounded-bl-2xl rounded-br-none shadow-xl">
       <div className="text-sm sm:text-base whitespace-pre-wrap">
         {isTyping ? <TypingDots colorClass="bg-white" /> : content}
       </div>
