@@ -388,20 +388,20 @@ export default function GameScreen() {
       <VideoBackground isLoading={gameState.isLoading} messages={gameState.messages} isActive={gameState.isActive} isTransitioning={!!gameState.isTransitioning} stepsAudioRef={stepsAudioRef} isMuted={isMuted} />
       <div className="flex flex-col h-screen relative z-10">
         {/* Header with stats */}
-        <div className="bg-white dark:bg-gray-800 shadow-lg p-2 sm:p-4">
+        <div className="bg-white dark:bg-gray-800 shadow-lg p-1.5 sm:p-4">
           <div className="max-w-4xl mx-auto">
-            <div className="flex flex-wrap justify-between items-center gap-2 sm:gap-6">
-              <div className="flex flex-wrap items-center gap-2 sm:gap-6">
+            <div className="flex flex-wrap justify-between items-center gap-1.5 sm:gap-6">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-6">
                 <div className="text-center">
-                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Score</p>
-                  <p className={`text-lg sm:text-2xl font-bold text-primary transition-all duration-300 ${animatingScore ? 'scale-125' : 'scale-100'
+                  <p className="text-[10px] leading-tight sm:text-sm text-gray-600 dark:text-gray-400">Score</p>
+                  <p className={`text-sm sm:text-2xl font-bold text-primary transition-all duration-300 ${animatingScore ? 'scale-125' : 'scale-100'
                     }`}>
                     {currentScore}
                   </p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Balance</p>
-                  <p className={`text-lg sm:text-2xl font-bold ${gameState.balance < 30
+                  <p className="text-[10px] leading-tight sm:text-sm text-gray-600 dark:text-gray-400">Balance</p>
+                  <p className={`text-sm sm:text-2xl font-bold ${gameState.balance < 30
                       ? 'text-red-600 dark:text-red-400'
                       : 'text-primary'
                     }`}>
@@ -409,20 +409,20 @@ export default function GameScreen() {
                   </p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Threat</p>
-                  <p className="text-lg sm:text-2xl font-bold leading-[2rem] h-6 sm:h-8 flex items-center justify-center">
-                    <ThreatStars className="align-middle" level={gameState.threatLevel ?? 0} size={16} />
+                  <p className="text-[10px] leading-tight sm:text-sm text-gray-600 dark:text-gray-400">Threat</p>
+                  <p className="text-sm sm:text-2xl font-bold leading-tight h-5 sm:h-8 flex items-center justify-center">
+                    <ThreatStars className="align-middle" level={gameState.threatLevel ?? 0} size={14} />
                   </p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Defeated</p>
-                  <p className="text-lg sm:text-2xl font-bold text-gray-800 dark:text-gray-200">
+                  <p className="text-[10px] leading-tight sm:text-sm text-gray-600 dark:text-gray-400">Defeated</p>
+                  <p className="text-sm sm:text-2xl font-bold text-gray-800 dark:text-gray-200">
                     {gameState.defeatedFeissari || 0}
                   </p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Time</p>
-                  <p className={`text-lg sm:text-2xl font-bold ${gameState.timeRemaining < 30
+                  <p className="text-[10px] leading-tight sm:text-sm text-gray-600 dark:text-gray-400">Time</p>
+                  <p className={`text-sm sm:text-2xl font-bold ${gameState.timeRemaining < 30
                       ? 'text-red-600 dark:text-red-400'
                       : 'text-gray-800 dark:text-gray-200'
                     }`}>
@@ -430,11 +430,11 @@ export default function GameScreen() {
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 sm:gap-4">
+              <div className="flex items-center gap-1.5 sm:gap-4">
                 {gameState.currentFeissariName && (
                   <div className="text-right">
-                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Talking to</p>
-                    <p className="text-sm sm:text-lg font-semibold text-gray-800 dark:text-gray-200">
+                    <p className="text-[10px] leading-tight sm:text-sm text-gray-600 dark:text-gray-400">Talking to</p>
+                    <p className="text-xs sm:text-lg font-semibold text-gray-800 dark:text-gray-200">
                       {gameState.currentFeissariName}
                     </p>
                   </div>
@@ -443,15 +443,15 @@ export default function GameScreen() {
                   variant="outline"
                   size="sm"
                   onClick={toggleMute}
-                  className="p-2 h-8 w-8 sm:h-10 sm:w-10"
+                  className="p-1.5 h-7 w-7 sm:h-10 sm:w-10"
                   title={isMuted ? "Unmute sound" : "Mute sound"}
                 >
                 {isMuted ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 sm:w-5 sm:h-5">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3.5 h-3.5 sm:w-5 sm:h-5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 9.75L19.5 12m0 0l2.25 2.25M19.5 12l2.25-2.25M19.5 12l-2.25 2.25m-10.5-6l4.72-4.72a.75.75 0 011.28.531V19.94a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.506-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.395C2.806 8.757 3.63 8.25 4.51 8.25H6.75z" />
                   </svg>
                 ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 sm:w-5 sm:h-5">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3.5 h-3.5 sm:w-5 sm:h-5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
                   </svg>
                 )}
