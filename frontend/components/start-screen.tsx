@@ -120,10 +120,10 @@ export default function StartScreen() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-orange-50 to-orange-100 dark:from-gray-900 dark:to-orange-950">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-orange-50 to-orange-100 dark:from-gray-900 dark:to-orange-950 p-4">
         <div className="flex flex-col items-center gap-4 text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary"></div>
-          <p className="text-xl text-primary">Loading...</p>
+          <div className="animate-spin rounded-full h-12 w-12 sm:h-16 sm:w-16 border-b-2 border-primary"></div>
+          <p className="text-lg sm:text-xl text-primary">Loading...</p>
         </div>
       </div>
     )
@@ -133,25 +133,25 @@ export default function StartScreen() {
   // Navigation to /game is done via router.push after creating/fetching session.
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-orange-50 to-orange-100 dark:from-gray-900 dark:to-orange-950">
-      <div className="w-full max-w-md space-y-8 rounded-lg bg-white p-10 shadow-2xl dark:bg-gray-800">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-orange-50 to-orange-100 dark:from-gray-900 dark:to-orange-950 p-4">
+      <div className="w-full max-w-md space-y-6 sm:space-y-8 rounded-lg bg-white p-6 sm:p-10 shadow-2xl dark:bg-gray-800">
         <div className="text-center">
-          <h1 className="text-5xl font-bold text-primary mb-2">
+          <h1 className="text-3xl sm:text-5xl font-bold text-primary mb-2">
             Survive the Feissari
           </h1>
-          <blockquote className="mt-6 p-4 border-l-4 border-primary bg-secondary dark:bg-gray-900 text-left rounded">
-            <p className="italic text-gray-700 dark:text-gray-200">
+          <blockquote className="mt-4 sm:mt-6 p-3 sm:p-4 border-l-4 border-primary bg-secondary dark:bg-gray-900 text-left rounded">
+            <p className="text-sm sm:text-base italic text-gray-700 dark:text-gray-200">
               “A feissari (Finnish, from English "face-to-face") is a **slightly annoying** person who engages in face-to-face sales or fundraising, often for commercial companies or charities.”
             </p>
           </blockquote>
-          <p className="text-lg text-gray-600 dark:text-gray-300 mt-4">
+          <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 mt-4">
             Enter your name to begin your journey
           </p>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {error && (
-            <div className="p-4 bg-red-100 border border-red-400 text-red-700 rounded dark:bg-red-900 dark:border-red-700 dark:text-red-200">
+            <div className="p-3 sm:p-4 bg-red-100 border border-red-400 text-red-700 rounded dark:bg-red-900 dark:border-red-700 dark:text-red-200 text-sm sm:text-base">
               {error}
             </div>
           )}
@@ -159,7 +159,7 @@ export default function StartScreen() {
           <div className="space-y-2">
             <label
               htmlFor="player-name"
-              className="text-sm font-medium text-gray-700 dark:text-gray-200"
+              className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200"
             >
               Player Name
             </label>
@@ -174,7 +174,7 @@ export default function StartScreen() {
                   handleStartPlaying()
                 }
               }}
-              className="text-base"
+              className="text-sm sm:text-base"
               disabled={isLoading}
             />
           </div>
@@ -182,7 +182,7 @@ export default function StartScreen() {
           <Button
             onClick={handleStartPlaying}
             disabled={!playerName.trim() || isLoading}
-            className="w-full h-14 text-lg font-semibold bg-primary hover:bg-primary/90 disabled:bg-gray-300 dark:disabled:bg-gray-600"
+            className="w-full h-12 sm:h-14 text-base sm:text-lg font-semibold bg-primary hover:bg-primary/90 disabled:bg-gray-300 dark:disabled:bg-gray-600"
             size="lg"
           >
             {isLoading ? "Starting..." : "Start Playing"}
